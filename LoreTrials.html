@@ -1,0 +1,2530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#f8fafc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/shapes/svg?seed=Lore">
+    <link rel="manifest" id="pwa-manifest">
+    
+    <title>Lore Trials | RPG & Quiz Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: { 
+                extend: { 
+                    colors: { 
+                        primary: { 500: '#6366f1', 600: '#4f46e5' },
+                        surface: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0' }
+                    },
+                    keyframes: {
+                        shake: { '0%, 100%': { transform: 'translateX(0)' }, '25%': { transform: 'translateX(-10px)' }, '75%': { transform: 'translateX(10px)' } },
+                        pop: { '0%': { transform: 'scale(0.9)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } },
+                        slideDown: { '0%': { transform: 'translateY(-10px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+                        float: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-5px)' } }
+                    },
+                    animation: {
+                        shake: 'shake 0.4s ease-in-out',
+                        pop: 'pop 0.3s ease-out forwards',
+                        slideDown: 'slideDown 0.2s ease-out forwards',
+                        float: 'float 3s ease-in-out infinite'
+                    }
+                } 
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900;1,400&family=Russo+One&display=swap');
+
+        * { -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Montserrat', sans-serif; background-color: #f8fafc; color: #334155; overflow-x: hidden; padding-top: 6rem; touch-action: manipulation; }
+        h1, h2, .font-display { font-family: 'Russo One', sans-serif; }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .floating-card { 
+            background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1.5rem; 
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08); 
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s; 
+        }
+        .floating-card:hover { 
+            transform: translateY(-4px); box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.3); 
+        }
+
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        
+        #game-bg { position: fixed; inset: 0; z-index: -10; background-size: cover; background-position: center; transition: background-image 1s ease; opacity: 0.15; filter: blur(4px); }
+        .bg-overlay { position: fixed; inset: 0; z-index: -9; background: linear-gradient(to bottom, rgba(248,250,252,0.8), #f8fafc); }
+
+        .q-option { transition: all 0.2s; cursor: pointer; min-height: 50px; }
+        .q-option:active { transform: scale(0.98); }
+        .q-option.correct { background-color: #ecfdf5; border-color: #10b981; color: #065f46; box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+        .q-option.wrong { background-color: #fef2f2; border-color: #ef4444; color: #991b1b; box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); }
+        .q-option.rpg-selected { background-color: #eff6ff; border-color: #3b82f6; color: #1e40af; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+        .q-option.disabled { pointer-events: none; opacity: 0.5; }
+
+        button:active:not(:disabled) { transform: scale(0.95); transition: transform 0.1s; }
+
+        #toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 200; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
+        .toast { pointer-events: auto; padding: 1rem 1.5rem; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 0.75rem; font-weight: bold; font-size: 0.875rem; animation: pop 0.3s ease-out forwards; }
+        .toast.success { background-color: #10b981; color: white; }
+        .toast.error { background-color: #ef4444; color: white; }
+        .toast.info { background-color: #3b82f6; color: white; }
+        .toast.coin { background-color: #f59e0b; color: white; }
+
+        .rpg-bar-fill { transition: width 0.5s linear; }
+        .badge-icon { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); transition: all 0.3s ease; }
+        .badge-icon:hover { transform: scale(1.15) rotate(10deg); filter: drop-shadow(0 8px 12px rgba(0,0,0,0.2)); }
+
+        .custom-select-wrapper { position: relative; width: 100%; user-select: none; }
+        .custom-select-trigger { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.75rem 1rem; 
+            font-weight: bold; color: #334155; cursor: pointer; transition: all 0.2s; min-height: 48px;
+        }
+        .custom-select-trigger:hover { border-color: #6366f1; }
+        .custom-select-options { 
+            position: absolute; top: 100%; left: 0; right: 0; margin-top: 0.5rem; 
+            background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0.75rem; 
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); z-index: 50; max-h: 200px; overflow-y: auto; 
+            display: none; 
+        }
+        .custom-select-options.open { display: block; animation: slideDown 0.2s ease-out; }
+        .custom-select-option { padding: 0.75rem 1rem; cursor: pointer; transition: background 0.1s; font-weight: 600; color: #475569; }
+        .custom-select-option:hover { background: #f1f5f9; color: #6366f1; }
+        
+        .modal-backdrop { cursor: pointer; }
+        .modal-content { cursor: default; }
+
+        .markdown-body p { margin-bottom: 0.5rem; }
+        .markdown-body strong { font-weight: 900; color: #1e293b; }
+        .markdown-body em { font-style: italic; color: #475569; }
+        .markdown-body ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 0.5rem; }
+        .markdown-body blockquote { border-left: 4px solid #cbd5e1; padding-left: 1rem; color: #64748b; font-style: italic; }
+        
+        .interest-btn.selected { background-color: #6366f1; color: white; border-color: #4f46e5; }
+        
+        /* Theme Classes for Profile */
+        .theme-default { border-color: #3b82f6; background: linear-gradient(to bottom, #ffffff, #f8fafc); }
+        .theme-gold { border-color: #fbbf24; background: linear-gradient(to bottom, #fffbeb, #fef3c7); box-shadow: 0 0 30px rgba(251, 191, 36, 0.2); }
+        .theme-ruby { border-color: #e11d48; background: linear-gradient(to bottom, #fff1f2, #ffe4e6); box-shadow: 0 0 30px rgba(225, 29, 72, 0.2); }
+        .theme-obsidian { border-color: #1e293b; background: linear-gradient(to bottom, #334155, #0f172a); color: white !important; box-shadow: 0 0 30px rgba(15, 23, 42, 0.4); }
+        .theme-obsidian h2, .theme-obsidian h3, .theme-obsidian .text-slate-800, .theme-obsidian .text-slate-500 { color: #f1f5f9 !important; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Injecting PWA Manifest -->
+    <script>
+        const pwaManifest = {
+            "name": "Lore Trials", "short_name": "LoreTrials", "start_url": ".", "display": "standalone",
+            "background_color": "#f8fafc", "theme_color": "#6366f1",
+            "icons": [{"src": "https://api.dicebear.com/7.x/shapes/svg?seed=Lore", "sizes": "512x512", "type": "image/svg+xml"}]
+        };
+        const blobManifest = new Blob([JSON.stringify(pwaManifest)], {type: 'application/manifest+json'});
+        document.getElementById('pwa-manifest').href = URL.createObjectURL(blobManifest);
+
+        // Simple inline SW registration attempt
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                const CACHE_NAME = 'lore-trials-v1';
+                self.addEventListener('install', e => self.skipWaiting());
+                self.addEventListener('activate', e => self.clients.claim());
+                self.addEventListener('fetch', e => { 
+                    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+                });
+            `;
+            const blobSW = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blobSW)).catch(err => console.log('SW blob registration failed, requires real file on server.'));
+        }
+    </script>
+
+    <!-- Preloader -->
+    <div id="preloader" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center transition-opacity duration-700">
+        <h1 class="text-4xl md:text-6xl font-display text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-600 mb-6 tracking-wider drop-shadow-sm animate-float">LORE TRIALS</h1>
+        <div class="w-48 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+            <div class="h-full bg-primary-500 w-1/2 animate-[pulse_1s_ease-in-out_infinite]"></div>
+        </div>
+        <div id="loader-text" class="mt-4 text-sm font-bold text-slate-400 animate-pulse">Connecting to the Hub...</div>
+        
+        <div class="absolute bottom-10 flex flex-col items-center gap-1 opacity-60">
+            <i class="fa-solid fa-code-branch text-xl text-primary-500"></i>
+            <span class="text-xs font-bold text-slate-500 tracking-widest uppercase">Deeproot Games</span>
+        </div>
+    </div>
+
+    <div id="game-bg"></div>
+    <div class="bg-overlay"></div>
+    <div id="toast-container"></div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="custom-confirm-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[110] hidden flex items-center justify-center px-4 modal-backdrop" onclick="if(event.target===this) closeConfirmModal(false)">
+        <div class="floating-card p-6 w-full max-w-sm animate-pop border-t-4 border-t-red-500 modal-content text-center relative">
+            <button onclick="closeConfirmModal(false)" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <i class="fa-solid fa-triangle-exclamation text-4xl text-red-500 mb-4 mt-2"></i>
+            <h3 id="confirm-title" class="text-xl font-display text-slate-800 mb-2">Are you sure?</h3>
+            <p id="confirm-desc" class="text-sm text-slate-500 font-medium mb-6">This action cannot be undone.</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirmModal(false)" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-3 rounded-xl font-bold transition-all">Cancel</button>
+                <button onclick="closeConfirmModal(true)" id="confirm-yes-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold transition-all shadow-md">Yes, proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RPG Map Modal -->
+    <div id="rpg-map-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[105] hidden flex items-center justify-center px-4 modal-backdrop" onclick="if(event.target===this) closeRPGMap()">
+        <div class="floating-card p-6 w-full max-w-3xl animate-pop border-t-4 border-t-purple-500 modal-content relative max-h-[85vh] flex flex-col">
+            <button onclick="closeRPGMap()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center z-10"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-2xl font-display text-slate-800 mb-2"><i class="fa-solid fa-project-diagram text-purple-500 mr-2"></i> Story Map</h3>
+            <p class="text-sm text-slate-500 font-medium mb-4">Visual structure of your branching story.</p>
+            <div id="rpg-map-container" class="overflow-y-auto hide-scroll flex-1 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Language Modal -->
+    <div id="lang-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[95] hidden flex items-center justify-center px-4 modal-backdrop" onclick="if(event.target===this) closeLangModal()">
+        <div class="floating-card p-6 w-full max-w-sm animate-pop border-t-4 border-t-primary-500 modal-content text-center relative">
+            <button onclick="closeLangModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-xl font-display text-slate-800 mb-2 mt-2"><i class="fa-solid fa-language text-primary-500 mr-2"></i> Add Translation</h3>
+            <p class="text-sm text-slate-500 font-medium mb-6">Select a language to translate.</p>
+            <div class="grid grid-cols-2 gap-2 mb-6 text-left max-h-60 overflow-y-auto pr-2 hide-scroll" id="lang-options-container">
+            </div>
+        </div>
+    </div>
+
+    <!-- Public Profile Modal -->
+    <div id="public-profile-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[95] hidden flex items-center justify-center px-4 modal-backdrop" onclick="if(event.target===this) closePublicProfile()">
+        <div class="floating-card p-6 sm:p-8 w-full max-w-2xl animate-pop border-t-4 border-t-blue-500 modal-content relative max-h-[90vh] flex flex-col" id="pub-profile-card">
+            <button onclick="closePublicProfile()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 bg-slate-100/50 backdrop-blur w-8 h-8 rounded-full flex items-center justify-center z-10"><i class="fa-solid fa-xmark"></i></button>
+            
+            <div class="overflow-y-auto hide-scroll flex-1 -mr-2 pr-2">
+                <div class="text-center relative mb-6 mt-2">
+                    <div class="relative z-10 mx-auto w-max mb-4">
+                        <div id="pub-profile-avatar" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white bg-slate-100 flex items-center justify-center overflow-hidden shadow-lg"></div>
+                        <div id="pub-profile-level" class="absolute -bottom-2 -right-2 bg-gradient-to-br from-blue-400 to-indigo-600 border-4 border-white text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-display text-lg shadow-md animate-float">1</div>
+                    </div>
+                    <h2 id="pub-profile-name" class="text-2xl sm:text-3xl font-display text-slate-800 mb-1">Author</h2>
+                    <div class="text-xs font-bold text-primary-500 uppercase tracking-widest mb-4">Lore Explorer</div>
+                    
+                    <div class="flex justify-center gap-3 mb-6" id="pub-action-buttons">
+                        <!-- Follow & Support buttons -->
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 sm:gap-4 max-w-sm mx-auto">
+                        <div class="bg-slate-50/80 backdrop-blur p-3 rounded-xl border border-slate-200">
+                            <div id="pub-stat-created" class="text-xl sm:text-2xl font-display text-emerald-500 mb-1">0</div>
+                            <div class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase">Created</div>
+                        </div>
+                        <div class="bg-slate-50/80 backdrop-blur p-3 rounded-xl border border-slate-200">
+                            <div id="pub-stat-played" class="text-xl sm:text-2xl font-display text-blue-500 mb-1">0</div>
+                            <div class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase">Played</div>
+                        </div>
+                        <div class="bg-slate-50/80 backdrop-blur p-3 rounded-xl border border-slate-200">
+                            <div id="pub-stat-survival" class="text-xl sm:text-2xl font-display text-orange-500 mb-1">0</div>
+                            <div class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase">Survival</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-200/50 pt-6 mb-6">
+                    <h3 class="font-display text-slate-800 mb-4 text-center">Achievements</h3>
+                    <div id="pub-badges-container" class="flex flex-wrap justify-center gap-3 sm:gap-4"></div>
+                </div>
+
+                <div class="border-t border-slate-200/50 pt-6">
+                    <h3 class="font-display text-slate-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-scroll text-primary-500"></i> Created Trials</h3>
+                    <div id="pub-quizzes-container" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="preview-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[105] hidden flex flex-col items-center justify-center px-4 modal-backdrop" onclick="if(event.target===this) closePreviewModal()">
+        <div class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-pop modal-content relative border-t-4 border-t-emerald-500">
+            <button onclick="closePreviewModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center z-50 shadow-sm"><i class="fa-solid fa-xmark"></i></button>
+            <div class="bg-emerald-50 text-emerald-700 text-center py-2 text-xs font-bold uppercase tracking-widest border-b border-emerald-100"><i class="fa-solid fa-eye"></i> Live Preview Mode</div>
+            
+            <div class="overflow-y-auto hide-scroll p-6 sm:p-8 flex-1 relative bg-slate-50" id="preview-container"></div>
+        </div>
+    </div>
+
+    <!-- FLOATING NAVBAR -->
+    <nav class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-white/90 backdrop-blur-md border border-slate-200 shadow-xl rounded-full px-4 sm:px-6 py-3 flex items-center justify-between gap-2 sm:gap-4 w-[95%] max-w-4xl transition-all hover:shadow-2xl">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="showView('feed')">
+            <div class="bg-gradient-to-br from-primary-500 to-indigo-600 text-white p-2 rounded-full shadow-md animate-pulse">
+                <i class="fa-solid fa-gamepad text-xl w-6 h-6 flex items-center justify-center"></i>
+            </div>
+            <h1 class="text-xl font-display tracking-wide hidden sm:block text-slate-800">LORE<span class="text-primary-500">TRIALS</span></h1>
+        </div>
+
+        <div class="flex items-center gap-1 sm:gap-4">
+            <!-- Lore Coins Display -->
+            <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full mr-2 shadow-sm" title="Lore Coins">
+                <i class="fa-solid fa-coins text-amber-500"></i>
+                <span id="nav-coins-display" class="font-bold text-sm text-amber-600">0</span>
+            </div>
+
+            <button onclick="openSearchModal()" class="text-slate-500 hover:text-primary-600 transition-colors w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200" title="Search">
+                <i class="fa-solid fa-search"></i>
+            </button>
+            <button onclick="showView('feed')" class="text-slate-500 hover:text-primary-600 transition-colors w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 hidden sm:flex" title="Hub">
+                <i class="fa-solid fa-compass"></i>
+            </button>
+            <button onclick="showView('leaderboard')" class="text-slate-500 hover:text-primary-600 transition-colors w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200" title="Leaderboard">
+                <i class="fa-solid fa-trophy"></i>
+            </button>
+            <button id="nav-create-btn" onclick="openCreateTest()" class="text-emerald-600 hover:text-emerald-700 transition-colors px-3 sm:px-4 py-2 rounded-full flex items-center gap-2 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 font-bold text-sm shadow-sm" title="Create Trial">
+                <i class="fa-solid fa-plus"></i> <span class="hidden md:inline">Create</span>
+            </button>
+            <div class="w-px h-6 bg-slate-300 mx-1"></div>
+            <button onclick="showView('profile')" class="relative text-slate-500 hover:text-primary-600 transition-colors w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 border border-slate-200 overflow-hidden shadow-sm" title="My Profile" id="nav-profile-btn">
+                <i class="fa-solid fa-user"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Search Modal -->
+    <div id="search-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[90] hidden flex-col items-center pt-[15vh] px-4 transition-opacity duration-300 modal-backdrop" onclick="if(event.target===this) closeSearchModal()">
+        <div class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[70vh] animate-pop modal-content relative">
+            <div class="relative flex-shrink-0 border-b border-slate-100 bg-white flex items-center z-10">
+                <i class="fa-solid fa-search absolute left-6 top-1/2 -translate-y-1/2 text-primary-500 text-xl"></i>
+                <input type="text" id="search-input" oninput="performSearch()" class="w-full bg-transparent py-6 pl-16 pr-24 text-xl text-slate-800 focus:outline-none placeholder-slate-400 font-bold" placeholder="Search trials, authors..." autocomplete="off">
+                <button onclick="closeSearchModal()" type="button" class="absolute right-4 top-1/2 -translate-y-1/2 bg-slate-100 text-slate-500 w-8 h-8 rounded-full flex items-center justify-center text-sm font-black hover:bg-slate-200 transition-colors shadow-sm cursor-pointer z-20"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="search-results" class="overflow-y-auto hide-scroll p-4 space-y-3 bg-slate-50 flex-1 min-h-[200px]">
+                <div class="text-center py-10 text-slate-400 font-bold"><i class="fa-solid fa-keyboard text-3xl mb-3 opacity-50 block"></i>Start typing to search...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal (No Backdrop Close) -->
+    <div id="auth-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[80] flex items-center justify-center px-4 transition-opacity hidden">
+        <div class="floating-card p-6 sm:p-8 w-full max-w-md animate-pop border-t-4 border-t-primary-500 relative">
+            <div class="text-center mb-6">
+                <i class="fa-solid fa-shield-halved text-4xl text-primary-500 mb-4 drop-shadow-sm"></i>
+                <h2 class="text-2xl font-display text-slate-800">System Login</h2>
+                <p class="text-slate-500 mt-2 text-sm font-medium">Authenticate to save progress and create.</p>
+            </div>
+            
+            <div id="auth-error" class="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-sm font-bold mb-4 hidden text-center">Error</div>
+            
+            <div class="space-y-4 mb-4">
+                <input type="email" id="auth-email" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none focus:border-primary-500 font-medium min-h-[48px]" placeholder="Your Email">
+                <input type="password" id="auth-password" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none focus:border-primary-500 font-medium min-h-[48px]" placeholder="Password (min. 6 chars)">
+                
+                <div class="flex gap-2">
+                    <button id="btn-login" onclick="handleAuthEmail(true)" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl font-bold transition-all shadow-md flex items-center justify-center min-h-[48px]">Login</button>
+                    <button id="btn-signup" onclick="handleAuthEmail(false)" class="flex-1 bg-primary-600 hover:bg-primary-500 text-white py-3 rounded-xl font-bold transition-all shadow-md shadow-primary-500/30 flex items-center justify-center min-h-[48px]">Sign Up</button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 my-5 text-sm text-slate-400 font-bold uppercase before:flex-1 before:h-px before:bg-slate-200 after:flex-1 after:h-px after:bg-slate-200">Or</div>
+
+            <button onclick="handleAuthGoogle()" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 py-3 rounded-xl font-bold transition-all mb-4 shadow-sm min-h-[48px]">
+                <i class="fa-brands fa-google text-red-500"></i> Continue with Google
+            </button>
+
+            <button onclick="handleAuthGuest()" class="w-full text-slate-500 hover:text-primary-600 text-sm font-bold transition-colors py-2">
+                Continue as Guest (Read Only)
+            </button>
+        </div>
+    </div>
+
+    <!-- Username & Interests Modal -->
+    <div id="username-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex items-center justify-center px-4 transition-opacity hidden">
+        <div class="floating-card p-6 sm:p-8 w-full max-w-md animate-pop border-t-4 border-t-emerald-500">
+            <div class="text-center mb-6">
+                <i class="fa-solid fa-user-astronaut text-4xl text-emerald-500 mb-4 drop-shadow-sm"></i>
+                <h2 class="text-2xl font-display text-slate-800">What is your name, Hero?</h2>
+                <p class="text-slate-500 mt-2 text-sm font-medium">Other players will see this.</p>
+            </div>
+            <input type="text" id="username-input" maxlength="20" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none focus:border-emerald-500 font-bold text-center text-xl mb-6 min-h-[48px]" placeholder="Your nickname">
+            
+            <div class="mb-6">
+                <p class="text-xs text-slate-500 font-bold uppercase mb-3 text-center">What are your interests?</p>
+                <div class="flex flex-wrap justify-center gap-2" id="interest-selection">
+                    <button class="interest-btn px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 transition-colors" onclick="playSound('ui'); this.classList.toggle('selected')">Games</button>
+                    <button class="interest-btn px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 transition-colors" onclick="playSound('ui'); this.classList.toggle('selected')">Movies</button>
+                    <button class="interest-btn px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 transition-colors" onclick="playSound('ui'); this.classList.toggle('selected')">Books</button>
+                    <button class="interest-btn px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 transition-colors" onclick="playSound('ui'); this.classList.toggle('selected')">Comics</button>
+                    <button class="interest-btn px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 transition-colors" onclick="playSound('ui'); this.classList.toggle('selected')">Theories</button>
+                    <button class="interest-btn px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 transition-colors" onclick="playSound('ui'); this.classList.toggle('selected')">Anime</button>
+                    <button class="interest-btn px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 transition-colors" onclick="playSound('ui'); this.classList.toggle('selected')">History</button>
+                </div>
+            </div>
+
+            <button onclick="saveUsername()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-bold transition-all shadow-md shadow-emerald-500/30 min-h-[48px]">
+                Save & Start
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN VIEWS CONTAINER -->
+    <div class="flex-1 w-full max-w-5xl mx-auto px-4 pb-8 relative z-10 flex flex-col min-h-[calc(100vh-8rem)] mt-2">
+        
+        <!-- FEED VIEW (HUB) -->
+        <main id="view-feed" class="w-full flex-1 flex flex-col">
+            <div id="daily-quests-container" class="mb-8 floating-card p-6 border-l-4 border-l-amber-400 bg-gradient-to-r from-white to-amber-50/30 hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-display text-slate-800 flex items-center gap-2"><i class="fa-solid fa-scroll text-amber-500"></i> Daily Quests</h3>
+                    <span class="text-xs font-bold text-slate-400" id="quest-date-display">Today</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="quests-list"></div>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                <div class="text-center md:text-left">
+                    <h2 class="text-3xl font-display text-slate-800 flex items-center justify-center md:justify-start gap-3"><i class="fa-solid fa-compass text-primary-500"></i> Trial Hub</h2>
+                    <p class="text-slate-500 font-medium mt-1">Test your knowledge, survive, or live an RPG story.</p>
+                </div>
+                <button onclick="startEndlessMode()" class="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-black rounded-xl shadow-lg shadow-red-500/30 transition-all flex items-center justify-center gap-2 min-h-[48px]">
+                    <i class="fa-solid fa-fire"></i> Endless Run
+                </button>
+            </div>
+
+            <div class="flex gap-2 w-full overflow-x-auto hide-scroll pb-4 mb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+                <button onclick="filterFeed('foryou')" id="filter-foryou" class="px-4 py-2 rounded-lg bg-slate-800 text-white font-bold whitespace-nowrap shadow-sm"><i class="fa-solid fa-sparkles"></i> For You</button>
+                <button onclick="filterFeed('following')" id="filter-following" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold whitespace-nowrap shadow-sm"><i class="fa-solid fa-user-group"></i> Following</button>
+                <div class="w-px h-6 bg-slate-300 mx-1 self-center shrink-0"></div>
+                <button onclick="filterFeed('all')" id="filter-all" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold whitespace-nowrap shadow-sm">All</button>
+                <button onclick="filterFeed('Games')" id="filter-games" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold whitespace-nowrap shadow-sm"><i class="fa-solid fa-gamepad"></i> Games</button>
+                <button onclick="filterFeed('Movies')" id="filter-movies" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold whitespace-nowrap shadow-sm"><i class="fa-solid fa-film"></i> Movies</button>
+                <button onclick="filterFeed('Books')" id="filter-books" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold whitespace-nowrap shadow-sm"><i class="fa-solid fa-book"></i> Books</button>
+                <button onclick="filterFeed('Comics')" id="filter-comics" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold whitespace-nowrap shadow-sm"><i class="fa-solid fa-mask"></i> Comics</button>
+                <button onclick="filterFeed('RPG')" id="filter-rpg" class="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold whitespace-nowrap shadow-sm"><i class="fa-solid fa-book-open"></i> Story RPG</button>
+            </div>
+            
+            <div id="feed-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10"></div>
+            
+            <!-- Branding Footer -->
+            <div class="mt-auto text-center py-8 text-slate-400 font-bold text-sm">
+                Created with <i class="fa-solid fa-heart text-red-500 animate-pulse"></i> by <span class="text-primary-500 font-display tracking-widest ml-1">DEEPROOT GAMES</span>
+            </div>
+        </main>
+
+        <!-- LEADERBOARD VIEW -->
+        <main id="view-leaderboard" class="w-full hidden max-w-4xl mx-auto flex-1 flex flex-col">
+            <div class="text-center mb-8 mt-4">
+                <h2 class="text-4xl font-display text-slate-800 flex justify-center items-center gap-3"><i class="fa-solid fa-trophy text-yellow-500 drop-shadow-md"></i> Hall of Fame</h2>
+                <p class="text-slate-500 font-medium mt-2">The most dedicated and skilled Heroes in the system.</p>
+            </div>
+
+            <div class="flex justify-center gap-4 mb-8">
+                <button onclick="renderLeaderboard('xp')" id="lb-tab-xp" class="px-6 py-3 rounded-xl bg-slate-800 text-white font-bold shadow-md transition-all">Top by XP</button>
+                <button onclick="renderLeaderboard('survival')" id="lb-tab-survival" class="px-6 py-3 rounded-xl bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 font-bold shadow-sm transition-all">Top Survivors</button>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-10 flex-1">
+                <div class="bg-slate-50 grid grid-cols-12 gap-2 sm:gap-4 p-4 border-b border-slate-200 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <div class="col-span-3 sm:col-span-2 text-center">Rank</div>
+                    <div class="col-span-5 sm:col-span-7">Hero</div>
+                    <div class="col-span-4 sm:col-span-3 text-right" id="lb-score-header">Score</div>
+                </div>
+                <div id="leaderboard-list" class="divide-y divide-slate-100">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </main>
+
+        <!-- CREATE TEST VIEW -->
+        <main id="view-create" class="w-full hidden max-w-3xl mx-auto">
+            <button onclick="showView('feed')" class="mb-6 text-slate-500 hover:text-slate-800 font-bold flex items-center gap-2 p-2 -ml-2"><i class="fa-solid fa-arrow-left"></i> Back to Hub</button>
+            
+            <div class="floating-card p-6 sm:p-8 border-t-4 border-t-emerald-500 relative">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b border-slate-100 pb-4 gap-4">
+                    <h2 class="text-2xl font-display text-slate-800"><i class="fa-solid fa-hammer text-emerald-500 mr-2"></i> Trial Forge</h2>
+                    
+                    <div class="flex items-center gap-2 z-10 w-full sm:w-auto">
+                        <span class="text-xs font-bold text-slate-400 uppercase hidden sm:inline">Lang:</span>
+                        <div id="builder-lang-select-wrapper" class="w-full sm:w-40"></div>
+                        <button onclick="openLangModal()" class="w-[48px] h-[48px] shrink-0 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 flex items-center justify-center transition-colors shadow-sm" title="Add Translation"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+                
+                <div class="space-y-5 mb-8">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Trial Title *</label>
+                        <input type="text" id="create-title" oninput="updateTranslationField('title', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none focus:border-emerald-500 font-bold text-lg min-h-[48px]" placeholder="e.g. The Witcher 3 Expert">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider flex justify-between">Description (Short) <span class="text-[10px] lowercase text-slate-400">Supports Markdown</span></label>
+                        <textarea id="create-desc" oninput="updateTranslationField('desc', this.value)" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none focus:border-emerald-500 resize-none font-medium text-sm" placeholder="Prove you are a true fan... Use **bold** or *italic*"></textarea>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="z-[5]">
+                            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Category</label>
+                            <div id="create-category-wrapper"></div>
+                        </div>
+                        <div class="z-[4]">
+                            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Theme Color</label>
+                            <div id="create-theme-wrapper"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 mb-8 space-y-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-sliders text-primary-500"></i> Game Mode & Atmosphere</h3>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <label class="flex-1 flex items-center gap-3 cursor-pointer p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors min-h-[60px]">
+                            <input type="checkbox" id="create-has-timer" class="w-6 h-6 text-primary-600 border-slate-300 rounded focus:ring-primary-500">
+                            <div>
+                                <span class="font-bold text-slate-700 block">Speedrun Timer</span>
+                                <span class="text-xs text-slate-500 font-medium">10s per Q. Bonus XP!</span>
+                            </div>
+                        </label>
+                        <label class="flex-1 flex items-center gap-3 cursor-pointer p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors border-l-4 border-l-purple-500 min-h-[60px]">
+                            <input type="checkbox" id="create-is-rpg" onchange="toggleRPGMode()" class="w-6 h-6 text-purple-600 border-slate-300 rounded focus:ring-purple-500">
+                            <div>
+                                <span class="font-bold text-slate-700 block text-purple-700">Story RPG Mode</span>
+                                <span class="text-xs text-slate-500 font-medium">Branching paths, no right/wrong.</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-200">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Background Image (URL / GIF)</label>
+                        <input type="text" id="create-bg-url" class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-800 focus:outline-none focus:border-primary-500 min-h-[44px]" placeholder="https://i.gifer.com/... or imgur">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Music (SoundCloud URL)</label>
+                        <input type="text" id="create-music-url" class="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-800 focus:outline-none focus:border-primary-500 min-h-[44px]" placeholder="https://soundcloud.com/...">
+                    </div>
+                </div>
+
+                <div class="mb-6 flex justify-between items-center flex-wrap gap-4">
+                    <h3 class="text-xl font-display text-slate-800 border-b-2 border-primary-500 pb-1 inline-block flex items-center gap-2">Scenes / Questions <span class="text-[10px] font-sans lowercase text-slate-400 font-bold translate-y-0.5">(Supports Markdown)</span></h3>
+                    <div class="flex gap-2 items-center w-full sm:w-auto">
+                        <button onclick="showRPGMap()" id="btn-show-map" class="hidden flex-1 sm:flex-none bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-lg text-sm font-bold transition-colors border border-purple-200 shadow-sm"><i class="fa-solid fa-project-diagram mr-1"></i> Story Map</button>
+                        <span id="q-counter" class="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-2 rounded-full border border-slate-200 shrink-0">0 Items</span>
+                    </div>
+                </div>
+                
+                <div id="questions-builder" class="space-y-6 mb-8"></div>
+
+                <button onclick="addQuestionBlock()" class="w-full bg-white hover:bg-slate-50 border-2 border-dashed border-slate-300 text-slate-600 py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 mb-8 shadow-sm min-h-[60px]">
+                    <i class="fa-solid fa-plus text-primary-500"></i> Add Scene / Question
+                </button>
+
+                <div class="border-t border-slate-200 pt-6 flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
+                    <button onclick="showCustomConfirm('Cancel Editing?', 'All unsaved progress will be lost.', () => showView('feed'))" class="w-full sm:w-auto px-6 py-4 sm:py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors border border-slate-200 sm:border-none">Cancel</button>
+                    <button onclick="previewTrial()" class="w-full sm:w-auto px-6 py-4 sm:py-3 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-600 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"><i class="fa-solid fa-eye"></i> Preview</button>
+                    <button onclick="saveTest()" id="btn-save-test" class="w-full sm:w-auto px-8 py-4 sm:py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-save"></i> <span id="btn-save-text">Publish</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <div id="duel-invite-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[85] hidden flex-col items-center justify-center px-4 modal-backdrop" onclick="if(event.target===this) declineDuel()">
+            <div class="floating-card p-8 w-full max-w-md text-center animate-pop border-t-4 border-t-orange-500 modal-content relative">
+                <button onclick="declineDuel()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <i class="fa-solid fa-khanda text-5xl text-orange-500 mb-4 animate-pulse"></i>
+                <h2 class="text-2xl font-display text-slate-800 mb-2">You've been challenged!</h2>
+                <p class="text-slate-500 font-medium mb-6 markdown-body" id="duel-invite-text"></p>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button onclick="declineDuel()" class="w-full sm:flex-1 px-4 py-4 sm:py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition-all">Decline</button>
+                    <button onclick="acceptDuel()" class="w-full sm:flex-1 px-4 py-4 sm:py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold shadow-lg shadow-orange-500/30 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-play"></i> Accept</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PLAY VIEW -->
+        <main id="view-play" class="w-full hidden max-w-2xl mx-auto mt-2 sm:mt-10">
+            <div id="play-start-screen" class="floating-card p-6 sm:p-12 text-center relative overflow-hidden animate-pop border-t-4">
+                <div class="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50/80 z-0 pointer-events-none"></div>
+                <div class="relative z-10">
+                    <div class="flex justify-center items-center gap-2 flex-wrap mb-4">
+                        <div id="play-category-badge" class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-slate-100 text-slate-600 border border-slate-200"></div>
+                        <div id="play-timer-badge" class="hidden inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-orange-100 text-orange-600 border border-orange-200"><i class="fa-solid fa-stopwatch"></i> Speedrun</div>
+                        <div id="play-rpg-badge" class="hidden inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-purple-100 text-purple-600 border border-purple-200"><i class="fa-solid fa-book-open"></i> Story RPG</div>
+                        <div id="play-duel-badge" class="hidden inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-red-100 text-red-600 border border-red-200"><i class="fa-solid fa-khanda"></i> Duel Mode</div>
+                    </div>
+                    
+                    <h1 id="play-title" class="text-3xl sm:text-5xl font-display text-slate-800 mb-4 drop-shadow-sm markdown-body inline-block">Trial Name</h1>
+                    <div id="play-desc" class="text-base sm:text-lg text-slate-600 mb-6 font-medium markdown-body"></div>
+                    
+                    <div id="play-lang-selector-container" class="hidden mb-6 z-[10] relative max-w-[200px] mx-auto">
+                        <div id="play-lang-wrapper"></div>
+                    </div>
+
+                    <div class="flex items-center justify-center gap-3 mb-10 text-sm font-bold text-slate-500 bg-white border border-slate-200 shadow-sm w-max mx-auto px-4 py-3 sm:py-2 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors" id="play-author-btn">
+                        <span>Author:</span>
+                        <div id="play-author-avatar" class="w-6 h-6 rounded-full overflow-hidden border border-slate-300"></div>
+                        <span id="play-author-name" class="text-slate-800">Author</span>
+                    </div>
+
+                    <button onclick="startGame()" id="btn-start-game" class="w-full sm:w-auto text-xl px-10 py-5 sm:py-4 text-white rounded-2xl font-black shadow-[0_10px_25px_rgba(0,0,0,0.15)] transition-all hover:scale-105 uppercase tracking-widest"></button>
+                    <button onclick="showView('feed')" id="btn-cancel-game" class="block mx-auto mt-6 text-sm text-slate-500 hover:text-slate-800 font-bold transition-colors p-2">Return to Hub</button>
+                </div>
+            </div>
+
+            <div id="play-game-screen" class="hidden relative">
+                <div class="mb-4 sm:mb-6 flex justify-between items-center bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                    <button onclick="abortGame()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                    <div class="flex-1 mx-4 h-2 bg-slate-100 rounded-full overflow-hidden relative" id="progress-bar-container">
+                        <div id="play-progress-bar" class="absolute top-0 left-0 h-full rounded-full transition-all duration-300 opacity-50 z-0"></div>
+                        <div id="play-timer-bar" class="absolute top-0 right-0 h-full bg-orange-500 rounded-full transition-all ease-linear z-10 w-0"></div>
+                    </div>
+                    <div class="font-display text-xl text-slate-800 w-20 text-right" id="play-q-tracker">
+                        <span id="play-current-q">1</span>/<span id="play-total-q">10</span>
+                    </div>
+                </div>
+
+                <div id="play-music-embed" class="hidden w-full mb-6"></div>
+
+                <div id="play-q-card" class="floating-card p-6 sm:p-8 border-l-4 animate-pop">
+                    <div id="play-q-text" class="text-xl sm:text-2xl font-bold text-slate-800 mb-6 leading-relaxed markdown-body">Question?</div>
+                    <div id="play-q-media" class="mb-6 hidden rounded-xl overflow-hidden border border-slate-200 shadow-sm flex justify-center bg-slate-50">
+                        <img id="play-q-img" src="" class="max-h-64 object-contain">
+                    </div>
+                    <div id="play-q-options" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <div id="play-result-screen" class="hidden relative animate-pop">
+                <div class="floating-card p-6 sm:p-12 text-center border-t-4 border-emerald-500 mb-8 relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-amber-100 rounded-full opacity-50 blur-2xl"></div>
+                    <i id="play-result-icon" class="fa-solid fa-trophy text-6xl text-yellow-400 mb-6 drop-shadow-md animate-bounce relative z-10"></i>
+                    <h2 id="play-result-title" class="text-3xl font-display text-slate-800 mb-2 relative z-10">Trial Complete!</h2>
+                    <p id="play-result-subtitle" class="text-slate-500 font-bold mb-8 relative z-10">Your result:</p>
+                    
+                    <div class="text-6xl sm:text-7xl font-display text-emerald-500 mb-8 drop-shadow-sm relative z-10" id="score-display">
+                        <span id="play-score">0</span><span class="text-3xl text-slate-400" id="play-score-max-wrap">/<span id="play-score-max">0</span></span>
+                    </div>
+
+                    <div id="play-duel-result" class="hidden bg-slate-800 text-white rounded-2xl p-6 mb-8 max-w-md mx-auto shadow-xl relative z-10">
+                        <h3 class="font-display text-xl mb-4 text-orange-400">Duel Results</h3>
+                        <div class="flex justify-between items-center">
+                            <div class="text-center w-1/2 border-r border-slate-600 pr-2">
+                                <div class="text-[10px] sm:text-xs text-slate-400 uppercase mb-1 truncate" id="duel-p1-name">Challenger</div>
+                                <div class="font-black text-2xl" id="duel-p1-score">0</div>
+                                <div class="text-xs text-slate-400" id="duel-p1-time">0s</div>
+                            </div>
+                            <div class="text-center w-1/2 pl-2">
+                                <div class="text-[10px] sm:text-xs text-slate-400 uppercase mb-1">You</div>
+                                <div class="font-black text-2xl" id="duel-p2-score">0</div>
+                                <div class="text-xs text-slate-400" id="duel-p2-time">0s</div>
+                            </div>
+                        </div>
+                        <div id="duel-winner-text" class="mt-4 pt-4 border-t border-slate-600 font-bold text-lg text-emerald-400">You won!</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 max-w-sm mx-auto mb-8 relative z-10" id="rewards-block">
+                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-col items-center justify-center gap-1 shadow-inner">
+                            <div class="text-xs font-bold text-slate-500 uppercase">XP Gained</div>
+                            <div class="text-xl font-black text-blue-600 flex items-center gap-1">+<span id="play-xp-gained">0</span> <i class="fa-solid fa-star text-sm"></i></div>
+                        </div>
+                        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex flex-col items-center justify-center gap-1 shadow-inner" id="coin-reward-block">
+                            <div class="text-xs font-bold text-amber-700 uppercase">Lore Coins</div>
+                            <div class="text-xl font-black text-amber-600 flex items-center gap-1">+<span id="play-coins-gained">0</span> <i class="fa-solid fa-coins text-sm"></i></div>
+                        </div>
+                    </div>
+
+                    <div id="rate-trial-block" class="mb-8 pt-6 border-t border-slate-100 relative z-10">
+                        <p class="text-sm font-bold text-slate-500 mb-3">How was the trial?</p>
+                        <div class="flex justify-center gap-4">
+                            <button onclick="rateTrial(true)" id="btn-like-trial" class="flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-500 text-slate-600 hover:text-emerald-600 font-bold transition-all shadow-sm"><i class="fa-solid fa-thumbs-up"></i> <span id="trial-like-count">0</span></button>
+                            <button onclick="rateTrial(false)" id="btn-dislike-trial" class="flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 bg-white hover:bg-red-50 hover:border-red-500 text-slate-600 hover:text-red-600 font-bold transition-all shadow-sm"><i class="fa-solid fa-thumbs-down"></i> <span id="trial-dislike-count">0</span></button>
+                        </div>
+                    </div>
+
+                    <div id="author-support-block" class="mb-8 hidden relative z-10">
+                        <a href="#" target="_blank" id="btn-support-author-end" class="inline-flex items-center justify-center w-full sm:w-auto gap-2 px-6 py-4 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-xl font-bold transition-colors shadow-sm border border-amber-200"><i class="fa-solid fa-mug-hot"></i> Support Author</a>
+                    </div>
+
+                    <div id="create-duel-block" class="mb-8 relative z-10">
+                        <button onclick="createDuelLink()" class="w-full sm:w-auto px-6 py-4 sm:py-3 bg-gradient-to-r from-orange-400 to-red-500 text-white rounded-xl font-bold shadow-md hover:scale-105 transition-transform flex items-center justify-center gap-2 mx-auto"><i class="fa-solid fa-khanda"></i> Challenge a Hero</button>
+                        <div id="duel-link-container" class="hidden mt-4 bg-slate-100 border border-slate-300 rounded-xl p-3 flex flex-col sm:flex-row items-center gap-2 max-w-md mx-auto">
+                            <input type="text" id="duel-link-input" readonly class="w-full sm:flex-1 bg-transparent text-sm text-slate-600 outline-none p-2 text-center sm:text-left">
+                            <button onclick="copyDuelLink()" class="w-full sm:w-auto bg-white px-4 py-3 sm:py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-primary-600 font-bold text-sm shadow-sm">Copy</button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center relative z-10">
+                        <button onclick="showView('feed')" class="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold transition-all border border-slate-200 shadow-sm">To Hub</button>
+                        <button onclick="showView('profile')" class="w-full sm:w-auto px-8 py-4 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold shadow-md shadow-primary-500/30 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-user"></i> My Profile</button>
+                    </div>
+                </div>
+
+                <div id="play-comments-section" class="floating-card p-6 sm:p-8">
+                    <h3 class="text-xl font-display text-slate-800 mb-6 flex items-center gap-2"><i class="fa-solid fa-comments text-primary-500"></i> Impressions</h3>
+                    <div class="flex flex-col sm:flex-row gap-3 mb-8">
+                        <input type="text" id="comment-input" class="w-full sm:flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-primary-500 font-medium min-h-[48px]" placeholder="What did you think? Write here..." onkeypress="if(event.key==='Enter') submitComment()">
+                        <button onclick="submitComment()" class="w-full sm:w-14 h-12 rounded-xl bg-primary-600 hover:bg-primary-500 text-white flex items-center justify-center shadow-md transition-all"><i class="fa-solid fa-paper-plane"></i> <span class="sm:hidden ml-2 font-bold">Send</span></button>
+                    </div>
+                    <div id="comments-container" class="space-y-4"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- PROFILE VIEW -->
+        <main id="view-profile" class="w-full hidden max-w-3xl mx-auto">
+            <button onclick="showView('feed')" class="mb-6 text-slate-500 hover:text-slate-800 font-bold flex items-center gap-2 p-2 -ml-2"><i class="fa-solid fa-arrow-left"></i> Hub</button>
+            
+            <div id="my-profile-card" class="floating-card p-6 sm:p-8 text-center relative overflow-hidden mb-8 border-t-4 border-blue-500 transition-colors duration-500">
+                <div class="absolute top-4 right-4 z-20">
+                    <button id="btn-edit-profile" onclick="openProfileSettings()" class="hidden bg-white/80 backdrop-blur border border-slate-200 text-slate-600 hover:bg-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-all"><i class="fa-solid fa-gear sm:mr-2"></i><span class="hidden sm:inline"> Settings</span></button>
+                </div>
+
+                <div class="relative z-10 mx-auto w-max mb-6 mt-4">
+                    <div id="profile-avatar" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white bg-slate-100 flex items-center justify-center overflow-hidden shadow-lg"></div>
+                    <div id="profile-level-badge" class="absolute -bottom-2 -right-2 sm:-bottom-3 sm:-right-3 bg-gradient-to-br from-blue-400 to-indigo-600 border-4 border-white text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-display text-base sm:text-lg shadow-md animate-float">1</div>
+                </div>
+                
+                <h2 id="profile-name" class="text-2xl sm:text-3xl font-display text-slate-800 mb-2">Guest</h2>
+                <div id="profile-role" class="text-sm font-bold text-primary-500 uppercase tracking-widest mb-6">Lore Explorer</div>
+
+                <div class="max-w-md mx-auto bg-slate-50/80 backdrop-blur p-4 rounded-2xl border border-slate-200 mb-8 shadow-inner">
+                    <div class="flex justify-between text-xs font-bold text-slate-500 mb-2">
+                        <span>XP: <span id="profile-xp-current" class="text-blue-600">0</span></span>
+                        <span>Next Level: <span id="profile-xp-next" class="text-slate-800">100</span></span>
+                    </div>
+                    <div class="h-3 w-full bg-slate-200 rounded-full overflow-hidden">
+                        <div id="profile-xp-bar" class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rpg-bar-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 sm:gap-4 max-w-lg mx-auto mb-8">
+                    <div class="bg-white/90 backdrop-blur p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <div id="profile-stat-created" class="text-2xl sm:text-3xl font-display text-emerald-500 mb-1">0</div>
+                        <div class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase">Created</div>
+                    </div>
+                    <div class="bg-white/90 backdrop-blur p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <div id="profile-stat-played" class="text-2xl sm:text-3xl font-display text-blue-500 mb-1">0</div>
+                        <div class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase">Played</div>
+                    </div>
+                    <div class="bg-white/90 backdrop-blur p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <div id="profile-stat-survival" class="text-2xl sm:text-3xl font-display text-orange-500 mb-1">0</div>
+                        <div class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase">Survival</div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-200/50 pt-6">
+                    <h3 class="font-display text-slate-800 mb-4">Achievements</h3>
+                    <div id="profile-badges-container" class="flex flex-wrap justify-center gap-3 sm:gap-4"></div>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-display text-slate-800 mb-4 border-l-4 border-primary-500 pl-3">My Trials</h3>
+            <div id="profile-quizzes-container" class="space-y-4 mb-10"></div>
+        </main>
+    </div>
+
+    <!-- Profile Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center px-4 transition-opacity hidden modal-backdrop" onclick="if(event.target===this) document.getElementById('settings-modal').classList.add('hidden')">
+        <div class="floating-card p-6 sm:p-8 w-full max-w-sm animate-pop border-t-4 border-slate-400 modal-content relative max-h-[90vh] overflow-y-auto hide-scroll">
+            <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-2 z-10"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <div class="flex justify-between items-center mb-6 mt-2">
+                <h2 class="text-xl font-display text-slate-800">Settings</h2>
+            </div>
+            
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-2">Nickname</label>
+                    <input type="text" id="set-name" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none focus:border-blue-500 font-bold min-h-[48px]">
+                </div>
+                <div class="z-[60] relative">
+                    <label class="block text-xs font-bold text-slate-500 mb-2">Avatar Style</label>
+                    <div id="settings-avatar-wrapper"></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-2 flex items-center gap-1"><i class="fa-solid fa-link text-primary-500"></i> Support Link</label>
+                    <input type="text" id="set-donatelink" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none focus:border-blue-500 font-medium text-sm min-h-[48px]" placeholder="Patreon, BuyMeACoffee...">
+                </div>
+
+                <div class="border-t border-slate-200 pt-4 mt-2">
+                    <label class="block text-xs font-bold text-amber-600 mb-2 flex items-center justify-between">
+                        <span><i class="fa-solid fa-store"></i> Theme Shop</span>
+                        <span id="shop-coins" class="font-black text-amber-500"><i class="fa-solid fa-coins"></i> 0</span>
+                    </label>
+                    <div class="grid grid-cols-2 gap-2" id="theme-shop-container">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="saveProfileSettings()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 sm:py-3 rounded-xl font-bold transition-all mb-4 shadow-md shadow-blue-600/30 min-h-[48px]">Save Changes</button>
+            <button onclick="handleLogout()" class="w-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 py-4 sm:py-3 rounded-xl font-bold transition-all min-h-[48px]"><i class="fa-solid fa-right-from-bracket mr-2"></i> Log Out</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyALCjJBLnBrQf_ShxxmRxpsmCJYQVqoKq4",
+            authDomain: "lore-weaver-a1065.firebaseapp.com",
+            projectId: "lore-weaver-a1065",
+            storageBucket: "lore-weaver-a1065.firebasestorage.app",
+            messagingSenderId: "464720745600",
+            appId: "1:464720745600:web:7d235392cceaa348aa4265"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'lore-trials-v3'; 
+
+        // Global State
+        let currentUser = null;
+        let quizzes = [];
+        let profiles = {};
+        let allComments = [];
+        let myName = localStorage.getItem('loreTrials_username') || '';
+        let currentFeedFilter = 'foryou'; 
+
+        // Preloader Logic
+        let dataLoaded = false;
+        let authResolved = false;
+        let networkRetryCount = 0;
+
+        // Translation Builder & Edit State
+        let builderData = {}; 
+        let currentBuildLang = 'en';
+        let currentEditingId = null;
+
+        // Play State Details
+        let currentGame = null; 
+        let timerInterval = null;
+        let timeLeft = 0;
+        let isEndlessMode = false;
+        let endlessQuestionsPool = [];
+        let gameStartTime = 0;
+        
+        // Duel State
+        let activeDuelData = null;
+
+        const views = { feed: document.getElementById('view-feed'), create: document.getElementById('view-create'), play: document.getElementById('view-play'), profile: document.getElementById('view-profile'), leaderboard: document.getElementById('view-leaderboard') };
+
+        const availableLangs = { en: '🇺🇸 English', uk: '🇺🇦 Ukrainian', es: '🇪🇸 Spanish', fr: '🇫🇷 French', de: '🇩🇪 German', pl: '🇵🇱 Polish', it: '🇮🇹 Italian', pt: '🇵🇹 Portuguese', ja: '🇯🇵 Japanese', zh: '🇨🇳 Chinese' };
+
+        const BADGES = [
+            { id: 'speedrunner', icon: '⚡', color: 'text-yellow-500 bg-yellow-50 border-yellow-200', name: 'Speedrunner', desc: 'Answered 10 questions in under 20s' },
+            { id: 'survivor', icon: '🛡️', color: 'text-orange-500 bg-orange-50 border-orange-200', name: 'Survivor', desc: 'Reached 50 score in Endless Run' },
+            { id: 'creator', icon: '🎨', color: 'text-emerald-500 bg-emerald-50 border-emerald-200', name: 'Master Creator', desc: 'Created a test played 100 times' },
+            { id: 'duelist', icon: '⚔️', color: 'text-red-500 bg-red-50 border-red-200', name: 'Duelist', desc: 'Won a 1v1 multiplayer duel' },
+            { id: 'storyteller', icon: '📖', color: 'text-purple-500 bg-purple-50 border-purple-200', name: 'Storyteller', desc: 'Created an RPG Branching Story' }
+        ];
+
+        const THEMES = [
+            { id: 'default', name: 'Classic', cost: 0, class: 'theme-default' },
+            { id: 'gold', name: 'Golden Hero', cost: 100, class: 'theme-gold' },
+            { id: 'ruby', name: 'Blood Ruby', cost: 250, class: 'theme-ruby' },
+            { id: 'obsidian', name: 'Dark Obsidian', cost: 500, class: 'theme-obsidian' }
+        ];
+
+        marked.setOptions({ breaks: true, gfm: true });
+
+        window.createCustomSelect = function(containerId, optionsObj, defaultValue, onChangeCallback) {
+            const container = document.getElementById(containerId);
+            if(!container) return null;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'custom-select-wrapper';
+            
+            let currentVal = defaultValue || Object.keys(optionsObj)[0];
+            
+            const trigger = document.createElement('div');
+            trigger.className = 'custom-select-trigger';
+            trigger.innerHTML = `<span>${optionsObj[currentVal]}</span> <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>`;
+            
+            const optionsDiv = document.createElement('div');
+            optionsDiv.className = 'custom-select-options hide-scroll';
+            
+            Object.keys(optionsObj).forEach(key => {
+                const opt = document.createElement('div');
+                opt.className = 'custom-select-option';
+                opt.textContent = optionsObj[key];
+                opt.onclick = () => {
+                    playSound('ui');
+                    currentVal = key;
+                    trigger.innerHTML = `<span>${optionsObj[key]}</span> <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>`;
+                    optionsDiv.classList.remove('open');
+                    if(onChangeCallback) onChangeCallback(key);
+                };
+                optionsDiv.appendChild(opt);
+            });
+            
+            trigger.onclick = () => {
+                playSound('ui');
+                const isOpen = optionsDiv.classList.contains('open');
+                document.querySelectorAll('.custom-select-options').forEach(o => o.classList.remove('open'));
+                if(!isOpen) optionsDiv.classList.add('open');
+            };
+            
+            wrapper.appendChild(trigger);
+            wrapper.appendChild(optionsDiv);
+            container.innerHTML = '';
+            container.appendChild(wrapper);
+
+            return { getValue: () => currentVal, setValue: (val) => { currentVal = val; trigger.innerHTML = `<span>${optionsObj[val]}</span> <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>`; } };
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.closest('.custom-select-wrapper')) {
+                document.querySelectorAll('.custom-select-options').forEach(o => o.classList.remove('open'));
+            }
+        }
+
+        let confirmCallback = null;
+        window.showCustomConfirm = function(title, desc, onConfirm) {
+            playSound('ui');
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-desc').textContent = desc;
+            confirmCallback = onConfirm;
+            document.getElementById('custom-confirm-modal').classList.remove('hidden');
+        }
+        window.closeConfirmModal = function(agreed) {
+            playSound('ui');
+            document.getElementById('custom-confirm-modal').classList.add('hidden');
+            if(agreed && confirmCallback) confirmCallback();
+        }
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+        
+        window.playSound = function(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'click') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(400, audioCtx.currentTime); gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'ui') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.05);
+                gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            } else if (type === 'coin') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(1000, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(1500, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        // Attach UI sounds to generic buttons
+        document.addEventListener('click', (e) => {
+            if(e.target.closest('button')) playSound('ui');
+        });
+
+        window.showToast = function(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            let icon = type === 'success' ? 'check-circle' : type === 'error' ? 'triangle-exclamation' : type === 'coin' ? 'coins' : 'info-circle';
+            el.className = `toast ${type}`;
+            el.innerHTML = `<i class="fa-solid fa-${icon} text-xl"></i> <span>${escapeHtml(msg)}</span>`;
+            container.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
+        }
+        function escapeHtml(text) { return text ? String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;") : ''; }
+
+        let createCategorySelect, createThemeSelect, settingsAvatarSelect;
+
+        function initGlobalSelects() {
+            createCategorySelect = createCustomSelect('create-category-wrapper', { 'Games': '🎮 Games', 'Movies': '🎬 Movies & TV', 'Books': '📚 Books', 'Comics': '🦸 Comics', 'Anime': '🌸 Anime', 'History': '📜 History & Myths', 'Theories': '🧠 Theories', 'Other': '❓ Other' }, 'Games');
+            createThemeSelect = createCustomSelect('create-theme-wrapper', { 'primary': '🟪 Magic Purple', 'emerald': '🟩 Toxic Emerald', 'rose': '🟥 Bloody Rose', 'blue': '🟦 Cosmic Blue', 'amber': '🟧 Desert Amber' }, 'primary');
+            settingsAvatarSelect = createCustomSelect('settings-avatar-wrapper', { 'bottts': 'Robots', 'lorelei': 'Cute', 'adventurer': 'Adventurers', 'fun-emoji': 'Emoji', 'shapes': 'Shapes' }, 'bottts');
+        }
+
+        function checkConnectionAndPreloader() {
+            const textEl = document.getElementById('loader-text');
+            if (!navigator.onLine) {
+                networkRetryCount++;
+                textEl.innerHTML = `No connection. Retrying... (Attempt: ${networkRetryCount})`;
+                textEl.classList.remove('text-slate-400'); textEl.classList.add('text-red-500');
+                setTimeout(checkConnectionAndPreloader, 2000);
+            } else {
+                textEl.innerHTML = `Connecting to the Hub...`;
+                textEl.classList.add('text-slate-400'); textEl.classList.remove('text-red-500');
+                if(dataLoaded && authResolved) {
+                    const loader = document.getElementById('preloader');
+                    if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 700); }
+                } else {
+                    setTimeout(checkConnectionAndPreloader, 500);
+                }
+            }
+        }
+        
+        window.addEventListener('online',  () => { networkRetryCount = 0; checkConnectionAndPreloader(); });
+        window.addEventListener('offline', () => checkConnectionAndPreloader());
+
+        window.addEventListener('load', () => { 
+            initGlobalSelects();
+            checkConnectionAndPreloader();
+            // Failsafe timeout
+            setTimeout(() => { dataLoaded = true; authResolved = true; }, 5000);
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            authResolved = true;
+            const createBtn = document.getElementById('nav-create-btn');
+            
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-modal').classList.add('hidden');
+                
+                if(user.isAnonymous) {
+                    createBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> <span class="hidden md:inline">Sign In</span>';
+                    createBtn.onclick = () => document.getElementById('auth-modal').classList.remove('hidden');
+                    createBtn.className = 'text-primary-600 hover:text-primary-700 transition-colors px-3 sm:px-4 py-2 rounded-full flex items-center gap-2 bg-primary-50 border border-primary-200 hover:bg-primary-100 font-bold text-sm shadow-sm';
+                } else {
+                    createBtn.innerHTML = '<i class="fa-solid fa-plus"></i> <span class="hidden md:inline">Create</span>';
+                    createBtn.onclick = openCreateTest;
+                    createBtn.className = 'text-emerald-600 hover:text-emerald-700 transition-colors px-3 sm:px-4 py-2 rounded-full flex items-center gap-2 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 font-bold text-sm shadow-sm';
+                }
+
+                startDataListeners();
+                
+                if (!user.isAnonymous) {
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'main'));
+                    if (snap.exists() && snap.data().name) {
+                        myName = snap.data().name; localStorage.setItem('loreTrials_username', myName);
+                        checkDailyQuests(user.uid);
+                    } else if (!myName) {
+                        document.getElementById('username-modal').classList.remove('hidden');
+                    }
+                }
+                updateNavAvatar();
+                checkForDuelLink();
+            } else {
+                document.getElementById('auth-modal').classList.remove('hidden');
+            }
+        });
+
+        window.handleAuthEmail = async function(isLogin) {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            if (!email || !password) return showAuthErr("Enter email and password");
+            
+            const btn = isLogin ? document.getElementById('btn-login') : document.getElementById('btn-signup');
+            const origHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                if (isLogin) await signInWithEmailAndPassword(auth, email, password);
+                else await createUserWithEmailAndPassword(auth, email, password);
+            } catch (e) { 
+                showAuthErr(e.message); 
+            } finally {
+                btn.innerHTML = origHTML;
+                btn.disabled = false;
+            }
+        }
+        window.handleAuthGoogle = async function() { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) {} }
+        window.handleAuthGuest = async function() { try { await signInAnonymously(auth); } catch (e) {} }
+        window.handleLogout = async function() { await signOut(auth); window.location.reload(); }
+        function showAuthErr(msg) { const el = document.getElementById('auth-error'); el.textContent = msg; el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'), 5000); }
+
+        window.saveUsername = async function() {
+            const input = document.getElementById('username-input').value.trim();
+            if(input) {
+                myName = input; localStorage.setItem('loreTrials_username', myName);
+                const selectedInterests = Array.from(document.querySelectorAll('.interest-btn.selected')).map(b => b.textContent);
+                
+                document.getElementById('username-modal').classList.add('hidden');
+                updateNavAvatar();
+                
+                if(currentUser && !currentUser.isAnonymous) {
+                    await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'main'), { 
+                        name: myName, avatarStyle: 'bottts', xp: 0, coins: 0, endlessScore: 0, played: 0, badges: [], interests: selectedInterests, following: [], liked: [], disliked: [], profileTheme: 'default', unlockedThemes: ['default']
+                    }, { merge: true });
+                    
+                    profiles[currentUser.uid] = { name: myName, avatarStyle: 'bottts', xp: 0, coins: 0, endlessScore: 0, played: 0, badges: [], interests: selectedInterests, following: [], liked: [], disliked: [], profileTheme: 'default', unlockedThemes: ['default'] };
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'public_profiles', currentUser.uid), profiles[currentUser.uid], { merge: true });
+                }
+                showToast("Welcome to the Trials!", "success");
+                filterFeed('foryou');
+            }
+        }
+
+        function startDataListeners() {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'quizzes'), (snap) => {
+                quizzes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                dataLoaded = true;
+                if(!views.feed.classList.contains('hidden')) renderFeed();
+                if(!views.profile.classList.contains('hidden')) renderProfileQuizzes();
+                if(!document.getElementById('public-profile-modal').classList.contains('hidden')) renderPubProfileQuizzes();
+                checkCreatorBadge();
+            });
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'public_profiles'), (snap) => {
+                snap.docs.forEach(doc => { profiles[doc.id] = doc.data(); });
+                updateNavAvatar();
+                if(!views.profile.classList.contains('hidden')) renderProfileData();
+                if(!views.leaderboard.classList.contains('hidden')) renderLeaderboard();
+                if(!document.getElementById('public-profile-modal').classList.contains('hidden') && currentPubId) openPublicProfile(currentPubId, true);
+            });
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'comments'), (snap) => {
+                allComments = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if(!views.play.classList.contains('hidden') && currentGame && !isEndlessMode) renderComments();
+            });
+        }
+
+        async function updatePublicProfile(updates) {
+            if(!currentUser || currentUser.isAnonymous) return;
+            await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'main'), updates, { merge: true });
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'public_profiles', currentUser.uid), updates, { merge: true });
+        }
+
+        function getAvatarUrl(name, style = 'bottts') { return `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(name || 'Hero')}`; }
+        
+        function applyProfileTheme(elId, themeId) {
+            const el = document.getElementById(elId);
+            if(!el) return;
+            THEMES.forEach(t => el.classList.remove(t.class));
+            const theme = THEMES.find(t => t.id === themeId) || THEMES[0];
+            el.classList.add(theme.class);
+        }
+
+        function updateNavAvatar() {
+            const btn = document.getElementById('nav-profile-btn');
+            if(currentUser && myName && !currentUser.isAnonymous) {
+                const p = profiles[currentUser.uid] || {};
+                const style = p.avatarStyle || 'bottts';
+                btn.innerHTML = `<img src="${getAvatarUrl(myName, style)}" class="w-full h-full object-cover">`;
+                document.getElementById('nav-coins-display').textContent = p.coins || 0;
+            } else { btn.innerHTML = `<i class="fa-solid fa-user"></i>`; }
+        }
+        function getLevelData(xp) {
+            const level = Math.floor(Math.sqrt((xp||0)/50)) + 1;
+            const currentLvlXp = 50 * Math.pow(level - 1, 2);
+            const nextLvlXp = 50 * Math.pow(level, 2);
+            const progress = (((xp||0) - currentLvlXp) / (nextLvlXp - currentLvlXp)) * 100;
+            return { level, nextLvlXp, progress };
+        }
+
+        window.showView = function(viewId) {
+            playSound('ui');
+            if(viewId === 'profile' && (!currentUser || currentUser.isAnonymous)) {
+                showToast("Please log in to view profile", "info");
+                return;
+            }
+
+            Object.values(views).forEach(v => v.classList.add('hidden'));
+            views[viewId].classList.remove('hidden');
+            window.scrollTo({top:0, behavior:'smooth'});
+            document.getElementById('game-bg').style.backgroundImage = ''; 
+            
+            clearInterval(timerInterval);
+            document.getElementById('play-music-embed').innerHTML = '';
+
+            if(viewId === 'feed') {
+                renderFeed();
+                if(currentUser && !currentUser.isAnonymous) checkDailyQuests(currentUser.uid);
+            }
+            if(viewId === 'profile') { renderProfileData(); renderProfileQuizzes(); }
+            if(viewId === 'leaderboard') { renderLeaderboard(); }
+            
+            if(viewId !== 'create') currentEditingId = null;
+        }
+
+        // Leaderboard Logic
+        let currentLbType = 'xp';
+        window.renderLeaderboard = function(type = currentLbType) {
+            currentLbType = type;
+            const container = document.getElementById('leaderboard-list');
+            container.innerHTML = '';
+            
+            document.getElementById('lb-tab-xp').className = type === 'xp' ? 'px-6 py-3 rounded-xl bg-slate-800 text-white font-bold shadow-md transition-all' : 'px-6 py-3 rounded-xl bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 font-bold shadow-sm transition-all';
+            document.getElementById('lb-tab-survival').className = type === 'survival' ? 'px-6 py-3 rounded-xl bg-slate-800 text-white font-bold shadow-md transition-all' : 'px-6 py-3 rounded-xl bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 font-bold shadow-sm transition-all';
+            document.getElementById('lb-score-header').textContent = type === 'xp' ? 'Total XP' : 'Record';
+
+            const users = Object.keys(profiles).map(uid => ({ uid, ...profiles[uid] }));
+            if(type === 'xp') {
+                users.sort((a,b) => (b.xp || 0) - (a.xp || 0));
+            } else {
+                users.sort((a,b) => (b.endlessScore || 0) - (a.endlessScore || 0));
+            }
+
+            const topUsers = users.slice(0, 50);
+            
+            if(topUsers.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-slate-400 font-bold">No data available yet.</div>`;
+                return;
+            }
+
+            topUsers.forEach((u, idx) => {
+                const rank = idx + 1;
+                let rankVisual = `<div class="font-display text-base sm:text-xl text-slate-400">#${rank}</div>`;
+                if(rank === 1) rankVisual = `<div class="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center font-black mx-auto shadow-sm"><i class="fa-solid fa-trophy text-sm"></i></div>`;
+                else if (rank === 2) rankVisual = `<div class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-black mx-auto shadow-sm">2</div>`;
+                else if (rank === 3) rankVisual = `<div class="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black mx-auto shadow-sm">3</div>`;
+
+                const avatar = getAvatarUrl(u.name, u.avatarStyle);
+                const score = type === 'xp' ? (u.xp || 0) : (u.endlessScore || 0);
+                const isMe = currentUser && u.uid === currentUser.uid;
+
+                container.innerHTML += `
+                    <div class="grid grid-cols-12 gap-2 sm:gap-4 p-3 sm:p-4 items-center hover:bg-slate-50 transition-colors cursor-pointer ${isMe ? 'bg-indigo-50/50' : ''}" onclick="openPublicProfile('${u.uid}')">
+                        <div class="col-span-3 sm:col-span-2 text-center">${rankVisual}</div>
+                        <div class="col-span-5 sm:col-span-7 flex items-center gap-3">
+                            <img src="${avatar}" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-slate-200 shadow-sm shrink-0">
+                            <div class="font-bold text-slate-800 text-sm sm:text-base truncate">${escapeHtml(u.name || 'Hero')}</div>
+                        </div>
+                        <div class="col-span-4 sm:col-span-3 text-right font-display text-base sm:text-lg text-primary-600">${score}</div>
+                    </div>`;
+            });
+        }
+
+        window.openSearchModal = function() {
+            playSound('ui');
+            const m = document.getElementById('search-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+            setTimeout(() => document.getElementById('search-input').focus(), 100);
+            performSearch();
+        }
+        window.closeSearchModal = function() { 
+            const m = document.getElementById('search-modal');
+            m.classList.add('hidden'); 
+            m.classList.remove('flex');
+            document.getElementById('search-input').value = '';
+        }
+        
+        window.performSearch = function() {
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            const resContainer = document.getElementById('search-results');
+            if (!query) { resContainer.innerHTML = `<div class="text-center py-10 text-slate-400 font-bold"><i class="fa-solid fa-keyboard text-3xl mb-3 opacity-50 block"></i>Start typing to search...</div>`; return; }
+
+            let results = quizzes.filter(q => {
+                const authorProf = profiles[q.authorId] || {};
+                const baseStr = `${q.title} ${q.category} ${authorProf.name || q.authorName}`.toLowerCase();
+                let transStr = '';
+                if(q.translations) Object.values(q.translations).forEach(t => transStr += ` ${t.title} ${t.desc}`);
+                return baseStr.includes(query) || transStr.toLowerCase().includes(query);
+            });
+
+            if (results.length === 0) { resContainer.innerHTML = `<div class="text-center py-10 text-slate-400 font-bold">Nothing found for "${escapeHtml(query)}"</div>`; return; }
+
+            resContainer.innerHTML = results.map(q => {
+                const theme = themeMap[q.themeColor || 'primary'];
+                const authorName = profiles[q.authorId]?.name || q.authorName;
+                return `
+                <div onclick="closeSearchModal(); initPlayView('${q.id}')" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-primary-400 transition-colors flex items-center gap-4 active:scale-95">
+                    <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                        ${q.bgUrl ? `<img src="${q.bgUrl}" class="w-full h-full object-cover rounded-lg">` : `<i class="fa-solid fa-play ${theme.text}"></i>`}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-slate-800 text-lg truncate">${escapeHtml(q.title)}</h4>
+                        <div class="text-xs font-bold text-slate-400 flex items-center gap-2"><span class="uppercase tracking-wider truncate">${q.category}</span><span class="shrink-0">•</span><span class="truncate">${escapeHtml(authorName)}</span></div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        let currentPubId = null;
+        window.openPublicProfile = function(uid, isUpdate = false) {
+            if(!uid) return;
+            currentPubId = uid;
+            const p = profiles[uid] || { name: 'Guest', played: 0, endlessScore: 0, xp: 0, badges: [], profileTheme: 'default' };
+            const xpData = getLevelData(p.xp);
+            
+            applyProfileTheme('pub-profile-card', p.profileTheme);
+            
+            document.getElementById('pub-profile-name').textContent = p.name;
+            document.getElementById('pub-profile-avatar').innerHTML = `<img src="${getAvatarUrl(p.name, p.avatarStyle)}" class="w-full h-full object-cover">`;
+            document.getElementById('pub-profile-level').textContent = xpData.level;
+            
+            const userQ = quizzes.filter(q => q.authorId === uid);
+            document.getElementById('pub-stat-created').textContent = userQ.length;
+            document.getElementById('pub-stat-played').textContent = p.played || 0;
+            document.getElementById('pub-stat-survival').textContent = p.endlessScore || 0;
+
+            const badgesContainer = document.getElementById('pub-badges-container');
+            badgesContainer.innerHTML = '';
+            const userBadges = p.badges || [];
+            if(userBadges.length === 0) badgesContainer.innerHTML = `<span class="text-xs text-slate-400 font-medium">No achievements yet.</span>`;
+            else {
+                userBadges.forEach(bId => {
+                    const bDef = BADGES.find(x => x.id === bId);
+                    if(bDef) badgesContainer.innerHTML += `<div class="flex flex-col items-center gap-1 w-16 group" title="${bDef.desc}"><div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-xl sm:text-2xl border-2 ${bDef.color} shadow-sm badge-icon">${bDef.icon}</div></div>`;
+                });
+            }
+
+            const actionContainer = document.getElementById('pub-action-buttons');
+            actionContainer.innerHTML = '';
+            
+            if(currentUser && currentUser.uid !== uid && !currentUser.isAnonymous) {
+                const myProfile = profiles[currentUser.uid] || {};
+                const isFollowing = (myProfile.following || []).includes(uid);
+                if(isFollowing) {
+                    actionContainer.innerHTML += `<button onclick="toggleFollow('${uid}')" class="px-5 py-2 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-500 rounded-xl font-bold transition-colors border border-slate-200 text-sm flex items-center gap-2 min-h-[44px]"><i class="fa-solid fa-user-minus"></i> Unfollow</button>`;
+                } else {
+                    actionContainer.innerHTML += `<button onclick="toggleFollow('${uid}')" class="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold transition-colors shadow-md text-sm flex items-center gap-2 min-h-[44px]"><i class="fa-solid fa-user-plus"></i> Follow</button>`;
+                }
+            }
+            if (p.donationLink) {
+                actionContainer.innerHTML += `<a href="${escapeHtml(p.donationLink)}" target="_blank" class="px-5 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-xl font-bold transition-colors shadow-sm border border-amber-200 text-sm flex items-center gap-2 min-h-[44px]"><i class="fa-solid fa-mug-hot"></i> Support</a>`;
+            }
+
+            if(!isUpdate) {
+                renderPubProfileQuizzes();
+                document.getElementById('public-profile-modal').classList.remove('hidden');
+            }
+        }
+
+        window.closePublicProfile = function() { document.getElementById('public-profile-modal').classList.add('hidden'); }
+        
+        window.toggleFollow = async function(targetUid) {
+            playSound('ui');
+            if(!currentUser || currentUser.isAnonymous) return showToast("Log in to follow", "error");
+            const myProfile = profiles[currentUser.uid] || {};
+            let following = myProfile.following || [];
+            
+            if(following.includes(targetUid)) following = following.filter(id => id !== targetUid);
+            else following.push(targetUid);
+            
+            await updatePublicProfile({ following: following });
+            openPublicProfile(targetUid, true); 
+        }
+
+        function renderPubProfileQuizzes() {
+            const container = document.getElementById('pub-quizzes-container');
+            container.innerHTML = '';
+            const userQ = quizzes.filter(q => q.authorId === currentPubId).sort((a,b) => b.timestamp - a.timestamp);
+            if(userQ.length === 0) {
+                container.innerHTML = `<div class="text-center py-6 text-slate-400 text-sm font-bold border border-dashed border-slate-200 rounded-xl bg-slate-50/50">No trials published yet.</div>`;
+                return;
+            }
+
+            userQ.forEach(q => {
+                const el = document.createElement('div');
+                el.className = 'bg-white p-3 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-primary-400 transition-colors flex justify-between items-center active:scale-95';
+                el.onclick = () => { closePublicProfile(); initPlayView(q.id); };
+                el.innerHTML = `
+                    <div class="pr-2 min-w-0">
+                        <div class="font-bold text-slate-800 truncate">${escapeHtml(q.title)}</div>
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 truncate">${q.category} • <i class="fa-solid fa-play"></i> ${q.plays||0} • <i class="fa-solid fa-heart text-red-400"></i> ${q.likes||0}</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-300 shrink-0"></i>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        window.rateTrial = async function(isLike) {
+            playSound('ui');
+            if(!currentUser || currentUser.isAnonymous) return showToast("Log in to rate", "error");
+            const qId = currentGame.quiz.id;
+            const myProfile = profiles[currentUser.uid] || {};
+            const liked = myProfile.liked || [];
+            const disliked = myProfile.disliked || [];
+
+            if(liked.includes(qId) || disliked.includes(qId)) return showToast("You already rated this", "info");
+
+            const qRef = doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', qId);
+            try {
+                if(isLike) {
+                    liked.push(qId);
+                    await updateDoc(qRef, { likes: (currentGame.baseQuiz.likes || 0) + 1 });
+                    document.getElementById('trial-like-count').textContent = (currentGame.baseQuiz.likes || 0) + 1;
+                } else {
+                    disliked.push(qId);
+                    await updateDoc(qRef, { dislikes: (currentGame.baseQuiz.dislikes || 0) + 1 });
+                    document.getElementById('trial-dislike-count').textContent = (currentGame.baseQuiz.dislikes || 0) + 1;
+                }
+                await updatePublicProfile({ liked: liked, disliked: disliked, coins: (myProfile.coins||0) + 5 });
+                showToast("Rated! +5 Coins", "coin");
+                
+                document.getElementById('btn-like-trial').classList.add('opacity-50', 'pointer-events-none');
+                document.getElementById('btn-dislike-trial').classList.add('opacity-50', 'pointer-events-none');
+            } catch(e) {}
+        }
+
+        let currentDailyQuests = [];
+        async function checkDailyQuests(uid) {
+            if(!uid) return;
+            const snap = await getDoc(doc(db, 'artifacts', appId, 'users', uid, 'profile', 'main'));
+            if(!snap.exists()) return;
+            const p = snap.data();
+            
+            const todayStr = new Date().toLocaleDateString('en-US');
+            document.getElementById('quest-date-display').textContent = todayStr;
+            
+            if (!p.quests || p.quests.date !== todayStr) {
+                currentDailyQuests = [
+                    { id: 'q_play', type: 'play', target: 2, current: 0, desc: 'Play 2 Trials', xp: 50, coins: 20, claimed: false },
+                    { id: 'q_comment', type: 'comment', target: 1, current: 0, desc: 'Leave an Impression', xp: 20, coins: 10, claimed: false }
+                ];
+                await updatePublicProfile({ quests: { date: todayStr, list: currentDailyQuests } });
+            } else { currentDailyQuests = p.quests.list; }
+            renderDailyQuests();
+        }
+
+        function renderDailyQuests() {
+            document.getElementById('daily-quests-container').classList.remove('hidden');
+            const container = document.getElementById('quests-list');
+            container.innerHTML = '';
+            
+            currentDailyQuests.forEach((q, idx) => {
+                const isComplete = q.current >= q.target;
+                const progressPct = Math.min(100, (q.current / q.target) * 100);
+                
+                let btnHtml = '';
+                if(isComplete && !q.claimed) btnHtml = `<button onclick="claimQuest(${idx})" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-colors animate-pulse">Claim +${q.xp}XP</button>`;
+                else if (q.claimed) btnHtml = `<span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1.5 rounded"><i class="fa-solid fa-check"></i> Done</span>`;
+
+                container.innerHTML += `
+                    <div class="bg-white/60 backdrop-blur rounded-xl p-3 sm:p-4 border border-slate-200/50 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-3"><div class="text-sm font-bold text-slate-700">${q.desc}</div>${btnHtml}</div>
+                        <div class="h-2 w-full bg-slate-200 rounded-full overflow-hidden"><div class="h-full bg-amber-500 rounded-full" style="width: ${progressPct}%"></div></div>
+                    </div>`;
+            });
+        }
+
+        window.claimQuest = async function(idx) {
+            playSound('coin');
+            if(!currentUser || currentDailyQuests[idx].claimed) return;
+            currentDailyQuests[idx].claimed = true;
+            const p = profiles[currentUser.uid] || {};
+            await updatePublicProfile({ 
+                xp: (p.xp || 0) + currentDailyQuests[idx].xp, 
+                coins: (p.coins || 0) + (currentDailyQuests[idx].coins || 0),
+                'quests.list': currentDailyQuests 
+            });
+            showToast(`Quest Claimed! +${currentDailyQuests[idx].xp} XP`, 'success');
+            renderDailyQuests();
+        }
+
+        async function progressQuest(type) {
+            if(!currentUser || currentUser.isAnonymous) return;
+            let updated = false;
+            currentDailyQuests.forEach(q => { if(q.type === type && q.current < q.target) { q.current++; updated = true; } });
+            if(updated) { await updatePublicProfile({ 'quests.list': currentDailyQuests }); renderDailyQuests(); }
+        }
+
+        async function grantBadge(badgeId) {
+            if(!currentUser || currentUser.isAnonymous) return;
+            const p = profiles[currentUser.uid];
+            if(!p) return;
+            let userBadges = p.badges || [];
+            if(!userBadges.includes(badgeId)) {
+                userBadges.push(badgeId);
+                await updatePublicProfile({ badges: userBadges, coins: (p.coins||0) + 50 });
+                const b = BADGES.find(x => x.id === badgeId);
+                showToast(`New Achievement: ${b.name}! +50 Coins`, 'success');
+            }
+        }
+
+        async function checkCreatorBadge() {
+            if(!currentUser || currentUser.isAnonymous) return;
+            const myQ = quizzes.filter(q => q.authorId === currentUser.uid);
+            if(myQ.some(q => (q.plays || 0) >= 100)) await grantBadge('creator');
+        }
+
+        let builderLangSelectInstance;
+
+        window.openCreateTest = function() {
+            playSound('ui');
+            if(!currentUser || currentUser.isAnonymous) return showToast("Only registered users can create.", "error");
+            
+            currentBuildLang = 'en';
+            currentEditingId = null;
+            document.getElementById('btn-save-text').textContent = 'Publish';
+
+            builderData = { en: { title: '', desc: '', questions: [{ type: 'multiple', q: '', opts: ['', ''], correct: 0, correctText: '', media: '', optsNext: ['',''] }] } };
+            
+            if(builderLangSelectInstance) {
+                document.getElementById('builder-lang-select-wrapper').innerHTML = '';
+            }
+            builderLangSelectInstance = createCustomSelect('builder-lang-select-wrapper', { 'en': '🇺🇸 English' }, 'en', (val) => switchBuilderLang(val));
+            
+            syncDOMFromBuilderData();
+            
+            document.getElementById('create-bg-url').value = '';
+            document.getElementById('create-music-url').value = '';
+            document.getElementById('create-has-timer').checked = false;
+            document.getElementById('create-is-rpg').checked = false;
+            toggleRPGMode();
+            showView('create');
+        }
+
+        window.editQuiz = function(quizId) {
+            playSound('ui');
+            const quiz = quizzes.find(q => q.id === quizId);
+            if(!quiz) return;
+            
+            currentEditingId = quizId;
+            currentBuildLang = 'en';
+            
+            if (quiz.translations) { builderData = JSON.parse(JSON.stringify(quiz.translations)); } 
+            else { builderData = { en: { title: quiz.title, desc: quiz.desc, questions: JSON.parse(JSON.stringify(quiz.questions)) } }; }
+
+            document.getElementById('btn-save-text').textContent = 'Update';
+            
+            const opts = {};
+            Object.keys(builderData).forEach(k => opts[k] = availableLangs[k] || k.toUpperCase());
+            builderLangSelectInstance = createCustomSelect('builder-lang-select-wrapper', opts, 'en', (val) => switchBuilderLang(val));
+            
+            createCategorySelect.setValue(quiz.category);
+            createThemeSelect.setValue(quiz.themeColor);
+            document.getElementById('create-bg-url').value = quiz.bgUrl || '';
+            document.getElementById('create-music-url').value = quiz.musicUrl || '';
+            document.getElementById('create-has-timer').checked = quiz.hasTimer || false;
+            document.getElementById('create-is-rpg').checked = quiz.isRPG || false;
+            
+            toggleRPGMode();
+            syncDOMFromBuilderData();
+            showView('create');
+        }
+
+        window.openLangModal = function() {
+            playSound('ui');
+            const container = document.getElementById('lang-options-container');
+            container.innerHTML = '';
+            Object.keys(availableLangs).forEach(k => {
+                if(builderData[k]) return;
+                container.innerHTML += `<button onclick="addNewTranslation('${k}')" class="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg hover:border-primary-500 hover:text-primary-600 transition-colors font-bold text-slate-700 text-sm active:scale-95"><span class="text-xl">${availableLangs[k].split(' ')[0]}</span> ${availableLangs[k].split(' ')[1]}</button>`;
+            });
+            document.getElementById('lang-modal').classList.remove('hidden');
+        }
+        window.closeLangModal = function() { document.getElementById('lang-modal').classList.add('hidden'); }
+
+        window.addNewTranslation = function(lc) {
+            closeLangModal();
+            if(builderData[lc]) return;
+            const enData = builderData['en'];
+            const newQ = enData.questions.map(q => ({ ...q, q: '', opts: q.opts.map(()=>''), correctText: '' }));
+            builderData[lc] = { title: '', desc: '', questions: newQ };
+            showToast(`Added translation.`, "success");
+            
+            const opts = {}; Object.keys(builderData).forEach(k => opts[k] = availableLangs[k] || k.toUpperCase());
+            builderLangSelectInstance = createCustomSelect('builder-lang-select-wrapper', opts, lc, (val) => switchBuilderLang(val));
+            switchBuilderLang(lc);
+        }
+
+        window.switchBuilderLang = function(newLang) {
+            currentBuildLang = newLang;
+            syncDOMFromBuilderData();
+        }
+
+        function syncDOMFromBuilderData() {
+            const data = builderData[currentBuildLang];
+            document.getElementById('create-title').value = data.title;
+            document.getElementById('create-desc').value = data.desc;
+            renderQuestionsBuilder();
+        }
+
+        window.updateTranslationField = function(field, val) { builderData[currentBuildLang][field] = val; }
+        
+        window.toggleRPGMode = function() { 
+            const isRPG = document.getElementById('create-is-rpg').checked;
+            const mapBtn = document.getElementById('btn-show-map');
+            if(isRPG) mapBtn.classList.remove('hidden'); else mapBtn.classList.add('hidden');
+            renderQuestionsBuilder(); 
+        }
+
+        window.changeQType = function(qIdx, type) {
+            Object.keys(builderData).forEach(lang => {
+                const q = builderData[lang].questions[qIdx];
+                q.type = type;
+                if (type === 'multiple') { q.opts = ['','']; q.correct = 0; q.optsNext = ['','']; }
+                else if (type === 'boolean') { q.opts = lang==='en'?['True', 'False']:['','']; q.correct = 0; q.optsNext = ['','']; }
+                else if (type === 'text') { q.opts = []; q.correctText = ''; q.optsNext = []; }
+            });
+            renderQuestionsBuilder();
+        }
+
+        window.renderQuestionsBuilder = function() {
+            const container = document.getElementById('questions-builder');
+            const questions = builderData[currentBuildLang].questions;
+            const isRPG = document.getElementById('create-is-rpg').checked;
+            document.getElementById('q-counter').textContent = `${questions.length} Items`;
+            container.innerHTML = '';
+
+            questions.forEach((qObj, qIdx) => {
+                const el = document.createElement('div');
+                el.className = 'bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm relative group';
+                
+                let optsHtml = '';
+                
+                if (qObj.type === 'multiple' || qObj.type === 'boolean') {
+                    qObj.opts.forEach((opt, oIdx) => {
+                        const isCorrect = builderData['en'].questions[qIdx].correct === oIdx;
+                        const isReadonly = qObj.type === 'boolean' && currentBuildLang !== 'en' ? '' : ''; 
+                        
+                        let rpgActionHtml = '';
+                        if(isRPG) {
+                            const nextVal = builderData['en'].questions[qIdx].optsNext ? builderData['en'].questions[qIdx].optsNext[oIdx] : '';
+                            const disabledIfTrans = currentBuildLang !== 'en' ? 'disabled title="Edit in English to change link"' : '';
+                            rpgActionHtml = `<input type="number" oninput="updateOptNext(${qIdx}, ${oIdx}, this.value)" value="${nextVal||''}" class="w-16 sm:w-20 bg-purple-50 border border-purple-200 rounded-lg p-2 text-xs sm:text-sm text-purple-700 font-bold focus:outline-none focus:border-purple-500 text-center" placeholder="Go Q#" ${disabledIfTrans}>`;
+                        } else {
+                            rpgActionHtml = `<button onclick="setCorrectOption(${qIdx}, ${oIdx})" class="w-8 h-8 flex-shrink-0 rounded flex items-center justify-center transition-colors ${isCorrect ? 'bg-emerald-500 text-white shadow-md' : 'bg-slate-50 border border-slate-300 text-slate-400 hover:border-emerald-500'}"><i class="fa-solid fa-check"></i></button>`;
+                        }
+
+                        optsHtml += `
+                            <div class="flex items-center gap-2 mb-2">
+                                ${rpgActionHtml}
+                                <input type="text" ${isReadonly} oninput="updateOptText(${qIdx}, ${oIdx}, this.value)" value="${escapeHtml(opt)}" class="flex-1 min-w-0 bg-white border ${(!isRPG && isCorrect) ? 'border-emerald-500' : 'border-slate-300'} rounded-lg p-2 text-sm text-slate-800 focus:outline-none focus:border-primary-500 font-medium min-h-[44px]" placeholder="Option ${oIdx+1}">
+                                ${(qObj.type === 'multiple' && qObj.opts.length > 2 && !isRPG) ? `<button onclick="removeOption(${qIdx}, ${oIdx})" class="text-red-400 hover:text-red-500 px-3 py-2"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                            </div>
+                        `;
+                    });
+                    if(qObj.type === 'multiple' && qObj.opts.length < 4 && !isRPG) {
+                        optsHtml += `<button onclick="addOption(${qIdx})" class="text-xs font-bold text-primary-500 hover:text-primary-600 mt-2 pl-2 p-2"><i class="fa-solid fa-plus"></i> Add option</button>`;
+                    }
+                } else if (qObj.type === 'text') {
+                    if(isRPG) {
+                        optsHtml = `<div class="text-xs text-orange-500 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Text input is not supported in RPG. Switch type.</div>`;
+                    } else {
+                        optsHtml = `
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="w-8 h-8 flex-shrink-0 rounded flex items-center justify-center bg-emerald-500 text-white shadow-md"><i class="fa-solid fa-check"></i></div>
+                                <input type="text" oninput="updateQCorrectText(${qIdx}, this.value)" value="${escapeHtml(qObj.correctText || '')}" class="flex-1 bg-white border border-emerald-500 rounded-lg p-2 text-sm text-slate-800 focus:outline-none focus:border-emerald-500 font-bold min-h-[44px]" placeholder="Correct Text">
+                            </div>
+                        `;
+                    }
+                }
+
+                el.innerHTML = `
+                    <div class="absolute top-2 right-2 sm:top-4 sm:right-4 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-20">
+                        <select onchange="changeQType(${qIdx}, this.value)" class="text-xs border border-slate-200 rounded p-2 sm:p-1 text-slate-600 bg-slate-50 outline-none cursor-pointer hover:border-primary-400">
+                            <option value="multiple" ${qObj.type==='multiple'?'selected':''}>Options</option>
+                            <option value="boolean" ${qObj.type==='boolean'?'selected':''}>True/False</option>
+                            <option value="text" ${qObj.type==='text'?'selected':''}>Text Input</option>
+                        </select>
+                        ${questions.length > 1 ? `<button onclick="removeQuestion(${qIdx})" class="text-red-500 hover:text-red-600 bg-red-50 p-2 sm:p-1.5 rounded text-xs font-bold" title="Delete"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                    <div class="flex items-start sm:items-center gap-3 mb-4 pr-16 sm:pr-32 pt-10 sm:pt-0">
+                        <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">Q${qIdx+1}</div>
+                        <input type="text" oninput="updateQText(${qIdx}, this.value)" value="${escapeHtml(qObj.q)}" class="w-full bg-transparent border-b border-slate-300 focus:border-primary-500 text-slate-800 font-bold p-1 focus:outline-none text-base sm:text-lg min-h-[44px]" placeholder="Ask a question or write narrative...">
+                    </div>
+                    
+                    <div class="pl-0 sm:pl-11 mb-4">
+                        <input type="text" oninput="updateQMedia(${qIdx}, this.value)" value="${escapeHtml(qObj.media)}" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 sm:p-2 text-xs text-slate-600 focus:outline-none focus:border-primary-500 min-h-[44px]" placeholder="Image URL or GIF (for this scene)">
+                    </div>
+
+                    <div class="pl-4 sm:pl-11 border-l-2 border-slate-200 sm:ml-4 py-2 relative">
+                        <p class="text-[10px] sm:text-xs text-slate-500 uppercase font-bold mb-3 pl-2 flex items-center gap-2">Answers / Actions ${isRPG ? `<span class="bg-purple-100 text-purple-600 px-2 rounded-sm lowercase text-[9px] sm:text-[10px]">effects</span>` : `<span class="bg-emerald-100 text-emerald-600 px-2 rounded-sm lowercase text-[9px] sm:text-[10px]">mark correct</span>`}</p>
+                        ${optsHtml}
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        window.updateQText = (qIdx, val) => builderData[currentBuildLang].questions[qIdx].q = val;
+        window.updateQMedia = (qIdx, val) => Object.keys(builderData).forEach(l => builderData[l].questions[qIdx].media = val);
+        window.updateOptText = (qIdx, oIdx, val) => builderData[currentBuildLang].questions[qIdx].opts[oIdx] = val;
+        window.updateQCorrectText = (qIdx, val) => builderData[currentBuildLang].questions[qIdx].correctText = val;
+        window.updateOptNext = (qIdx, oIdx, val) => {
+            if(!builderData['en'].questions[qIdx].optsNext) builderData['en'].questions[qIdx].optsNext = [];
+            builderData['en'].questions[qIdx].optsNext[oIdx] = val;
+        }
+        
+        window.setCorrectOption = (qIdx, oIdx) => { Object.keys(builderData).forEach(l => builderData[l].questions[qIdx].correct = oIdx); renderQuestionsBuilder(); }
+        window.addOption = (qIdx) => { 
+            Object.keys(builderData).forEach(l => {
+                if(builderData[l].questions[qIdx].opts.length < 4) {
+                    builderData[l].questions[qIdx].opts.push('');
+                    if(!builderData[l].questions[qIdx].optsNext) builderData[l].questions[qIdx].optsNext = [];
+                    builderData[l].questions[qIdx].optsNext.push('');
+                }
+            });
+            renderQuestionsBuilder(); 
+        }
+        window.removeOption = (qIdx, oIdx) => { 
+            Object.keys(builderData).forEach(l => {
+                const q = builderData[l].questions[qIdx];
+                q.opts.splice(oIdx, 1); 
+                if(q.optsNext) q.optsNext.splice(oIdx, 1);
+                if(q.correct >= q.opts.length) q.correct = 0;
+            });
+            renderQuestionsBuilder(); 
+        }
+        window.addQuestionBlock = () => { 
+            Object.keys(builderData).forEach(l => {
+                builderData[l].questions.push({ type: 'multiple', q: '', opts: ['', ''], correct: 0, correctText: '', media: '', optsNext: ['',''] });
+            });
+            renderQuestionsBuilder(); 
+        }
+        window.removeQuestion = (qIdx) => { Object.keys(builderData).forEach(l => builderData[l].questions.splice(qIdx, 1)); renderQuestionsBuilder(); }
+
+        window.saveTest = async function() {
+            playSound('ui');
+            const enData = builderData['en'];
+            if(!enData.title.trim()) return showToast("English Title is required (used as base)", "error");
+            
+            const isRPG = document.getElementById('create-is-rpg').checked;
+
+            for(let i=0; i<enData.questions.length; i++) {
+                const q = enData.questions[i];
+                if(!q.q.trim()) return showToast(`Scene ${i+1} is empty`, "error");
+                if (q.type === 'multiple' || q.type === 'boolean') {
+                    for(let j=0; j<q.opts.length; j++) if(!q.opts[j].trim()) return showToast(`Option ${j+1} in Scene ${i+1} is empty`, "error");
+                } else if (q.type === 'text') {
+                    if(isRPG) return showToast("Text not supported in RPG", "error");
+                    if(!q.correctText.trim()) return showToast(`Answer in Scene ${i+1} is empty`, "error");
+                }
+            }
+
+            const btn = document.getElementById('btn-save-test');
+            const origHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...'; btn.disabled = true;
+
+            const quizData = {
+                title: enData.title, desc: enData.desc, questions: enData.questions, translations: builderData,
+                category: createCategorySelect.getValue(), themeColor: createThemeSelect.getValue(),
+                bgUrl: document.getElementById('create-bg-url').value.trim(),
+                musicUrl: document.getElementById('create-music-url').value.trim(),
+                hasTimer: document.getElementById('create-has-timer').checked,
+                isRPG: isRPG,
+                authorId: currentUser.uid, authorName: myName, timestamp: Date.now()
+            };
+
+            try {
+                if (currentEditingId) {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', currentEditingId), quizData);
+                    showToast("Updated!", "success");
+                } else {
+                    quizData.plays = 0; quizData.likes = 0; quizData.dislikes = 0;
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'quizzes'), quizData);
+                    const p = profiles[currentUser.uid] || {};
+                    await updatePublicProfile({ xp: (p.xp || 0) + 50, coins: (p.coins || 0) + 20 });
+                    if(isRPG) grantBadge('storyteller');
+                    showToast("Published! +50 XP, +20 Coins", "success");
+                }
+                showView('feed');
+            } catch(e) { 
+                showToast("Save Error", "error"); 
+            } finally { 
+                btn.innerHTML = origHTML; 
+                btn.disabled = false; 
+            }
+        }
+
+        window.showRPGMap = function() {
+            playSound('ui');
+            const container = document.getElementById('rpg-map-container');
+            container.innerHTML = '';
+            const qs = builderData[currentBuildLang].questions;
+            const qsEn = builderData['en'].questions; 
+            
+            if(qs.length === 0) return;
+
+            qs.forEach((q, idx) => {
+                const box = document.createElement('div');
+                box.className = 'bg-white p-4 rounded-xl shadow-sm border-l-4 border-purple-500';
+                
+                let linksHtml = '';
+                q.opts.forEach((opt, oIdx) => {
+                    const target = qsEn[idx].optsNext ? qsEn[idx].optsNext[oIdx] : '';
+                    let badge = '';
+                    if(!target) badge = `<span class="bg-red-100 text-red-600 px-2 py-0.5 rounded text-xs ml-2">Game Over</span>`;
+                    else badge = `<span class="bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded text-xs ml-2">Goes to Q${target}</span>`;
+                    
+                    linksHtml += `<div class="mt-2 text-sm text-slate-600 flex items-center before:content-[''] before:w-4 before:h-px before:bg-slate-300 before:mr-2 before:inline-block"><span class="font-bold truncate max-w-[150px] sm:max-w-xs">${escapeHtml(opt)}</span> ${badge}</div>`;
+                });
+
+                box.innerHTML = `
+                    <div class="font-bold text-slate-800 text-lg mb-1"><span class="text-purple-500 mr-1">Q${idx+1}:</span> ${escapeHtml(q.q || '...')}</div>
+                    <div class="pl-4 border-l-2 border-slate-100">${linksHtml}</div>
+                `;
+                container.appendChild(box);
+            });
+
+            document.getElementById('rpg-map-modal').classList.remove('hidden');
+        }
+        window.closeRPGMap = function() { document.getElementById('rpg-map-modal').classList.add('hidden'); }
+
+        let previewState = { currentQ: 0 };
+        window.previewTrial = function() {
+            playSound('ui');
+            const data = builderData[currentBuildLang];
+            if(!data.questions || data.questions.length === 0) return showToast("Add scenes first", "error");
+            
+            const isRPG = document.getElementById('create-is-rpg').checked;
+            const theme = themeMap[createThemeSelect.getValue() || 'primary'];
+            
+            previewState = { currentQ: 0, data: data, isRPG: isRPG, theme: theme, enData: builderData['en'] };
+            document.getElementById('preview-modal').classList.remove('hidden');
+            renderPreviewQuestion();
+        }
+
+        window.closePreviewModal = function() {
+            document.getElementById('preview-modal').classList.add('hidden');
+        }
+
+        function renderPreviewQuestion() {
+            const container = document.getElementById('preview-container');
+            const qObj = previewState.data.questions[previewState.currentQ];
+            if(!qObj) return closePreviewModal();
+
+            let optsHtml = '';
+            if (qObj.type === 'multiple' || qObj.type === 'boolean') {
+                qObj.opts.forEach((opt, idx) => {
+                    if(!opt) return;
+                    optsHtml += `<button onclick="handlePreviewAnswer(${idx})" class="w-full text-left bg-white border border-slate-200 shadow-sm rounded-xl p-4 text-slate-700 font-bold text-lg hover:bg-slate-50 transition-colors active:scale-95">${escapeHtml(opt)}</button>`;
+                });
+            } else if (qObj.type === 'text') {
+                optsHtml += `
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" class="w-full sm:flex-1 bg-white border border-slate-300 rounded-xl p-4 text-lg font-bold shadow-sm" placeholder="Text preview...">
+                        <button onclick="handlePreviewAnswer(-1)" class="bg-primary-600 text-white px-8 py-4 sm:py-0 rounded-xl font-bold active:scale-95">Ok</button>
+                    </div>`;
+            }
+
+            container.innerHTML = `
+                <div class="mb-4 text-sm font-bold text-slate-400">Scene ${previewState.currentQ + 1}</div>
+                <div class="bg-white p-6 sm:p-8 rounded-2xl border-l-4 ${previewState.theme.border} shadow-sm">
+                    <div class="text-xl sm:text-2xl font-bold text-slate-800 mb-6 leading-relaxed markdown-body">${marked.parse(qObj.q)}</div>
+                    ${qObj.media ? `<div class="mb-6 rounded-xl overflow-hidden bg-slate-50 flex justify-center"><img src="${qObj.media}" class="max-h-48 object-contain"></div>` : ''}
+                    <div class="space-y-3">${optsHtml}</div>
+                </div>
+            `;
+        }
+
+        window.handlePreviewAnswer = function(idx) {
+            playSound('click');
+            if (previewState.isRPG && idx >= 0) {
+                const enBaseQ = previewState.enData.questions[previewState.currentQ];
+                let nextStr = enBaseQ.optsNext ? enBaseQ.optsNext[idx] : '';
+                
+                if(!nextStr || isNaN(parseInt(nextStr)) || parseInt(nextStr) <= 0) {
+                    showToast("End of Story", "info"); closePreviewModal();
+                } else {
+                    previewState.currentQ = parseInt(nextStr) - 1;
+                    if(previewState.currentQ >= previewState.data.questions.length) { showToast("End of Story", "info"); closePreviewModal(); }
+                    else renderPreviewQuestion();
+                }
+            } else {
+                previewState.currentQ++;
+                if(previewState.currentQ >= previewState.data.questions.length) { showToast("End", "info"); closePreviewModal(); } 
+                else { renderPreviewQuestion(); }
+            }
+        }
+
+        window.filterFeed = function(category) {
+            playSound('ui');
+            currentFeedFilter = category;
+            const btns = document.querySelectorAll('[id^="filter-"]');
+            btns.forEach(b => {
+                if(b.id === `filter-${category.toLowerCase()}`) b.className = 'px-4 py-2 rounded-lg bg-slate-800 text-white font-bold whitespace-nowrap shadow-sm';
+                else b.className = 'px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold whitespace-nowrap shadow-sm active:scale-95';
+            });
+            renderFeed();
+        }
+
+        const themeMap = { 'primary': { bg: 'bg-primary-50', text: 'text-primary-600', border: 'border-primary-500' }, 'emerald': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-500' }, 'rose': { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-500' }, 'blue': { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-500' }, 'amber': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-500' } };
+
+        window.renderFeed = function() {
+            const container = document.getElementById('feed-container');
+            container.innerHTML = '';
+            
+            let filtered = quizzes;
+            
+            if(currentFeedFilter === 'foryou') {
+                if(currentUser && !currentUser.isAnonymous) {
+                    const myProf = profiles[currentUser.uid] || {};
+                    const interests = myProf.interests || [];
+                    const following = myProf.following || [];
+                    filtered = filtered.filter(q => interests.includes(q.category) || following.includes(q.authorId));
+                    if(filtered.length === 0) filtered = quizzes;
+                }
+            } else if (currentFeedFilter === 'following') {
+                if(currentUser && !currentUser.isAnonymous) {
+                    const myProf = profiles[currentUser.uid] || {};
+                    const following = myProf.following || [];
+                    filtered = filtered.filter(q => following.includes(q.authorId));
+                } else filtered = [];
+            } else if (currentFeedFilter !== 'all') {
+                if(currentFeedFilter === 'RPG') filtered = filtered.filter(q => q.isRPG);
+                else filtered = filtered.filter(q => q.category === currentFeedFilter && !q.isRPG);
+            }
+            filtered.sort((a,b) => b.timestamp - a.timestamp);
+
+            if(filtered.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-400 font-bold border border-dashed border-slate-300 rounded-2xl bg-white shadow-sm mx-4 sm:mx-0">No trials found here.</div>`;
+                return;
+            }
+
+            filtered.forEach(q => {
+                const theme = themeMap[q.themeColor || 'primary'];
+                const el = document.createElement('div');
+                el.className = `floating-card overflow-hidden cursor-pointer group border-t-4 ${theme.border} active:scale-95 sm:active:scale-100`;
+                el.onclick = () => { playSound('ui'); initPlayView(q.id); };
+
+                let bgHtml = q.bgUrl ? `<div class="h-32 w-full overflow-hidden relative"><img src="${q.bgUrl}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"><div class="absolute inset-0 bg-gradient-to-t from-white to-transparent"></div></div>` : `<div class="h-16 w-full ${theme.bg} opacity-50"></div>`;
+                
+                const authorProf = profiles[q.authorId] || {};
+                const authorName = authorProf.name || q.authorName;
+                const avatarUrl = getAvatarUrl(authorName, authorProf.avatarStyle || 'bottts');
+                
+                let icons = '';
+                if(q.hasTimer) icons += `<i class="fa-solid fa-stopwatch text-orange-500 ml-2" title="Speedrun"></i>`;
+                if(q.isRPG) icons += `<i class="fa-solid fa-book-open text-purple-500 ml-2" title="Story RPG"></i>`;
+                
+                let langTags = '';
+                if(q.translations && Object.keys(q.translations).length > 1) langTags = `<span class="text-[10px] font-bold text-slate-400 ml-2"><i class="fa-solid fa-language"></i> ${Object.keys(q.translations).length}</span>`;
+
+                el.innerHTML = `
+                    ${bgHtml}
+                    <div class="p-5 ${q.bgUrl ? '-mt-10 relative z-10' : ''}">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center"><span class="text-[10px] font-black uppercase tracking-widest bg-white border border-slate-200 px-2 py-1 rounded-md text-slate-600 shadow-sm">${q.category}</span>${langTags}</div>
+                            <div class="flex gap-2">
+                                <span class="text-xs font-bold text-slate-500 flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100"><i class="fa-solid fa-heart text-red-400"></i> ${q.likes || 0}</span>
+                                <span class="text-xs font-bold text-slate-500 flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-md border border-slate-100"><i class="fa-solid fa-play ${theme.text}"></i> ${q.plays || 0}</span>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-display text-slate-800 mb-2 leading-tight drop-shadow-sm group-hover:${theme.text} transition-colors">${escapeHtml(q.title)} ${icons}</h3>
+                        <div class="text-sm text-slate-500 line-clamp-2 mb-4 font-medium markdown-body">${marked.parseInline(q.desc || 'No description...')}</div>
+                        
+                        <div class="flex items-center justify-between border-t border-slate-100 pt-4 mt-auto">
+                            <div class="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-primary-600 transition-colors" onclick="event.stopPropagation(); openPublicProfile('${q.authorId}')">
+                                <img src="${avatarUrl}" class="w-6 h-6 rounded-full border border-slate-200 shadow-sm">${escapeHtml(authorName)}
+                            </div>
+                            <span class="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded">${q.questions?.length || 0} ${q.isRPG ? 'Scenes' : 'Qs'}</span>
+                        </div>
+                    </div>`;
+                container.appendChild(el);
+            });
+        }
+
+        window.startEndlessMode = function() {
+            playSound('ui');
+            endlessQuestionsPool = [];
+            quizzes.forEach(q => { if(q.questions && !q.isRPG) q.questions.forEach(qst => endlessQuestionsPool.push({ ...qst, sourceQuiz: q.title })); });
+            if(endlessQuestionsPool.length === 0) return showToast("No questions in DB!", "error");
+            
+            endlessQuestionsPool.sort(() => Math.random() - 0.5); 
+            isEndlessMode = true;
+            currentGame = { quiz: { title: "Endless Run", desc: "Play until your first mistake.", questions: endlessQuestionsPool, themeColor: 'rose', hasTimer: false, isRPG: false }, currentQ: 0, score: 0 };
+            
+            document.getElementById('play-category-badge').textContent = 'ENDLESS RUN';
+            document.getElementById('play-title').innerHTML = marked.parseInline(currentGame.quiz.title);
+            document.getElementById('play-title').className = `text-3xl sm:text-5xl font-display mb-4 drop-shadow-sm text-red-600 markdown-body inline-block`;
+            document.getElementById('play-desc').innerHTML = marked.parse(currentGame.quiz.desc);
+            document.getElementById('play-author-name').textContent = 'The System';
+            document.getElementById('play-author-btn').onclick = null;
+            document.getElementById('play-author-btn').classList.remove('cursor-pointer', 'hover:bg-slate-50');
+            document.getElementById('play-author-avatar').innerHTML = `<div class="w-full h-full bg-slate-800 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-server"></i></div>`;
+            document.getElementById('play-timer-badge').classList.add('hidden');
+            document.getElementById('play-duel-badge').classList.add('hidden');
+            document.getElementById('play-rpg-badge').classList.add('hidden');
+            document.getElementById('play-lang-selector-container').classList.add('hidden');
+
+            const btnStart = document.getElementById('btn-start-game');
+            btnStart.className = `w-full sm:w-auto text-xl px-10 py-5 sm:py-4 text-white rounded-2xl font-black shadow-lg transition-all hover:scale-105 uppercase tracking-widest bg-red-500`;
+            btnStart.innerHTML = `<i class="fa-solid fa-skull mr-2"></i> Survive`;
+
+            document.getElementById('play-start-screen').classList.remove('hidden');
+            document.getElementById('play-game-screen').classList.add('hidden');
+            document.getElementById('play-result-screen').classList.add('hidden');
+            showView('play');
+        }
+
+        async function checkForDuelLink() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const duelId = urlParams.get('duel');
+            if(duelId) {
+                try {
+                    const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'duels', duelId));
+                    if(snap.exists()) {
+                        activeDuelData = { id: snap.id, ...snap.data() };
+                        if (currentUser && activeDuelData.challengerId === currentUser.uid) { showToast("You created this duel.", "info"); return; }
+                        const qName = quizzes.find(q => q.id === activeDuelData.quizId)?.title || 'a Trial';
+                        document.getElementById('duel-invite-text').innerHTML = `**${escapeHtml(activeDuelData.challengerName)}** challenged you in **${escapeHtml(qName)}**! Beat their score: ${activeDuelData.challengerScore}.`;
+                        document.getElementById('duel-invite-text').innerHTML = marked.parse(document.getElementById('duel-invite-text').innerHTML);
+                        document.getElementById('duel-invite-overlay').classList.remove('hidden');
+                        document.getElementById('duel-invite-overlay').style.display = 'flex';
+                    }
+                } catch(e) {}
+            }
+        }
+
+        window.declineDuel = function() {
+            playSound('ui');
+            document.getElementById('duel-invite-overlay').classList.add('hidden');
+            activeDuelData = null; window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        window.acceptDuel = function() {
+            playSound('ui');
+            document.getElementById('duel-invite-overlay').classList.add('hidden');
+            window.history.replaceState({}, document.title, window.location.pathname);
+            if(activeDuelData) initPlayView(activeDuelData.quizId, true);
+        }
+
+        window.createDuelLink = async function() {
+            playSound('ui');
+            if(!currentUser) return showToast("Log in for duels", "error");
+            if(currentGame.quiz.isRPG) return showToast("RPG Stories cannot be dueled.", "error");
+
+            const duelRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'duels'), {
+                quizId: currentGame.quiz.id, challengerId: currentUser.uid, challengerName: myName, challengerScore: currentGame.score, challengerTime: Math.floor((Date.now() - gameStartTime)/1000), timestamp: Date.now()
+            });
+            const link = window.location.origin + window.location.pathname + "?duel=" + duelRef.id;
+            document.getElementById('duel-link-container').classList.remove('hidden');
+            document.getElementById('duel-link-container').classList.add('flex');
+            document.getElementById('duel-link-input').value = link;
+        }
+
+        window.copyDuelLink = function() {
+            playSound('ui');
+            const input = document.getElementById('duel-link-input'); input.select(); document.execCommand('copy'); showToast("Link copied!", "success");
+        }
+
+        function getSoundcloudIframe(url) {
+            if(!url || !url.includes('soundcloud.com')) return '';
+            return `<iframe width="100%" height="100" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%236366f1&auto_play=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false"></iframe>`;
+        }
+
+        window.initPlayView = function(quizId, isDuel = false) {
+            isEndlessMode = false;
+            const baseQuiz = quizzes.find(q => q.id === quizId);
+            if(!baseQuiz) return;
+
+            currentGame = { baseQuiz: baseQuiz, quiz: { ...baseQuiz }, currentQ: 0, score: 0, isDuel: isDuel };
+            const q = currentGame.quiz;
+            const theme = themeMap[q.themeColor || 'primary'];
+            
+            if(q.bgUrl) document.getElementById('game-bg').style.backgroundImage = `url('${q.bgUrl}')`;
+            
+            document.getElementById('play-category-badge').textContent = q.category;
+            
+            const langContainer = document.getElementById('play-lang-selector-container');
+            if(q.translations && Object.keys(q.translations).length > 1) {
+                langContainer.classList.remove('hidden');
+                const opts = {}; Object.keys(q.translations).forEach(k => opts[k] = availableLangs[k] || k.toUpperCase());
+                createCustomSelect('play-lang-wrapper', opts, 'en', (val) => switchPlayLang(val));
+            } else { langContainer.classList.add('hidden'); }
+
+            switchPlayLang('en');
+            
+            if(q.hasTimer && !q.isRPG) document.getElementById('play-timer-badge').classList.remove('hidden'); else document.getElementById('play-timer-badge').classList.add('hidden');
+            if(q.isRPG) document.getElementById('play-rpg-badge').classList.remove('hidden'); else document.getElementById('play-rpg-badge').classList.add('hidden');
+            if(isDuel) document.getElementById('play-duel-badge').classList.remove('hidden'); else document.getElementById('play-duel-badge').classList.add('hidden');
+
+            const authorProf = profiles[q.authorId] || {};
+            const authorName = authorProf.name || q.authorName;
+            
+            document.getElementById('play-author-avatar').innerHTML = `<img src="${getAvatarUrl(authorName, authorProf.avatarStyle || 'bottts')}" class="w-full h-full object-cover">`;
+            document.getElementById('play-author-name').textContent = authorName;
+            document.getElementById('play-author-btn').onclick = () => openPublicProfile(q.authorId);
+            document.getElementById('play-author-btn').classList.add('cursor-pointer', 'hover:bg-slate-50');
+
+            const btnStart = document.getElementById('btn-start-game');
+            btnStart.className = `w-full sm:w-auto text-xl px-10 py-5 sm:py-4 text-white rounded-2xl font-black shadow-[0_10px_25px_rgba(0,0,0,0.15)] transition-all hover:scale-105 uppercase tracking-widest ${theme.bg.replace('50', '500')}`;
+            btnStart.innerHTML = `<i class="fa-solid fa-play mr-2"></i> Start (${q.questions.length})`;
+
+            document.getElementById('play-start-screen').classList.remove('hidden');
+            document.getElementById('play-game-screen').classList.add('hidden');
+            document.getElementById('play-result-screen').classList.add('hidden');
+            document.getElementById('play-duel-result').classList.add('hidden');
+            
+            document.getElementById('btn-like-trial').classList.remove('opacity-50', 'pointer-events-none');
+            document.getElementById('btn-dislike-trial').classList.remove('opacity-50', 'pointer-events-none');
+            document.getElementById('trial-like-count').textContent = q.likes || 0;
+            document.getElementById('trial-dislike-count').textContent = q.dislikes || 0;
+
+            document.getElementById('create-duel-block').classList.remove('hidden');
+            if(q.isRPG) document.getElementById('create-duel-block').classList.add('hidden');
+            document.getElementById('duel-link-container').classList.add('hidden');
+            document.getElementById('duel-link-container').classList.remove('flex');
+            document.getElementById('rewards-block').classList.remove('hidden');
+            document.getElementById('author-support-block').classList.add('hidden');
+            
+            showView('play');
+        }
+
+        window.switchPlayLang = function(lang) {
+            if(!currentGame || !currentGame.baseQuiz.translations || !currentGame.baseQuiz.translations[lang]) return;
+            const trans = currentGame.baseQuiz.translations[lang];
+            
+            currentGame.quiz.title = trans.title; currentGame.quiz.desc = trans.desc; currentGame.quiz.questions = trans.questions;
+            const theme = themeMap[currentGame.quiz.themeColor || 'primary'];
+            document.getElementById('play-title').innerHTML = marked.parseInline(trans.title);
+            document.getElementById('play-title').className = `text-3xl sm:text-5xl font-display mb-4 drop-shadow-sm markdown-body inline-block ${theme.text}`;
+            document.getElementById('play-desc').innerHTML = marked.parse(trans.desc || 'Are you ready?');
+        }
+
+        window.startGame = function() {
+            playSound('ui');
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            if(!isEndlessMode && currentGame.quiz.musicUrl) {
+                const embedContainer = document.getElementById('play-music-embed');
+                embedContainer.innerHTML = getSoundcloudIframe(currentGame.quiz.musicUrl);
+                embedContainer.classList.remove('hidden');
+            }
+
+            if(!isEndlessMode && !currentGame.isDuel) updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', currentGame.quiz.id), { plays: (currentGame.quiz.plays||0) + 1 }).catch(()=>{});
+
+            document.getElementById('play-start-screen').classList.add('hidden');
+            document.getElementById('play-game-screen').classList.remove('hidden');
+            gameStartTime = Date.now();
+            renderQuestion();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            if(!currentGame.quiz.hasTimer || isEndlessMode || currentGame.quiz.isRPG) return;
+            
+            const bar = document.getElementById('play-timer-bar');
+            bar.style.width = '100%'; timeLeft = 100;
+
+            timerInterval = setInterval(() => {
+                timeLeft -= 1; bar.style.width = `${timeLeft}%`;
+                if(timeLeft <= 30) bar.className = 'absolute top-0 right-0 h-full bg-red-500 rounded-full transition-all ease-linear z-10';
+                else bar.className = 'absolute top-0 right-0 h-full bg-orange-500 rounded-full transition-all ease-linear z-10';
+
+                if(timeLeft <= 0) { clearInterval(timerInterval); handleAnswer(-1, null, true); }
+            }, 100);
+        }
+
+        function renderQuestion() {
+            const qObj = currentGame.quiz.questions[currentGame.currentQ];
+            if(!qObj) return finishGame(); 
+
+            const theme = themeMap[currentGame.quiz.themeColor || 'primary'];
+            
+            if(isEndlessMode) document.getElementById('play-total-q').textContent = "∞";
+            else document.getElementById('play-total-q').textContent = currentGame.quiz.questions.length;
+            
+            document.getElementById('play-current-q').textContent = currentGame.currentQ + 1;
+            
+            if(currentGame.quiz.isRPG) document.getElementById('progress-bar-container').classList.add('hidden');
+            else {
+                document.getElementById('progress-bar-container').classList.remove('hidden');
+                document.getElementById('play-progress-bar').className = `absolute top-0 left-0 h-full rounded-full transition-all duration-300 opacity-50 z-0 ${theme.bg.replace('50','200')}`;
+                if(!isEndlessMode) document.getElementById('play-progress-bar').style.width = `${((currentGame.currentQ) / currentGame.quiz.questions.length) * 100}%`;
+                else document.getElementById('play-progress-bar').style.width = `100%`;
+            }
+
+            const card = document.getElementById('play-q-card');
+            card.className = `floating-card p-6 sm:p-8 border-l-4 animate-pop ${theme.border}`;
+            
+            let qPrefix = isEndlessMode ? `<span class="block text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">From: ${qObj.sourceQuiz}</span>` : '';
+            document.getElementById('play-q-text').innerHTML = qPrefix + marked.parse(qObj.q);
+            
+            const mediaDiv = document.getElementById('play-q-media');
+            if(qObj.media) { document.getElementById('play-q-img').src = qObj.media; mediaDiv.classList.remove('hidden'); } 
+            else { mediaDiv.classList.add('hidden'); }
+
+            const optsContainer = document.getElementById('play-q-options');
+            optsContainer.innerHTML = '';
+            
+            if (qObj.type === 'multiple' || qObj.type === 'boolean') {
+                qObj.opts.forEach((opt, idx) => {
+                    if(!opt) return; 
+                    const btn = document.createElement('button');
+                    btn.className = `q-option w-full text-left bg-white border border-slate-200 shadow-sm rounded-xl p-4 text-slate-700 font-bold text-base sm:text-lg hover:bg-slate-50 hover:border-slate-300 focus:outline-none`;
+                    btn.textContent = opt;
+                    btn.onclick = () => handleAnswer(idx, btn);
+                    optsContainer.appendChild(btn);
+                });
+            } else if (qObj.type === 'text') {
+                optsContainer.innerHTML = `
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="play-text-answer" class="w-full sm:flex-1 bg-white border border-slate-300 rounded-xl p-4 text-base sm:text-lg text-slate-800 font-bold focus:outline-none focus:border-primary-500 shadow-sm min-h-[50px]" placeholder="Type answer..." onkeypress="if(event.key==='Enter') window.submitTextAnswer()">
+                        <button onclick="window.submitTextAnswer()" class="w-full sm:w-auto bg-primary-600 hover:bg-primary-500 text-white px-8 py-4 rounded-xl font-bold shadow-md transition-all active:scale-95">Submit</button>
+                    </div>`;
+            }
+
+            if(currentGame.quiz.hasTimer && !isEndlessMode && !currentGame.quiz.isRPG) startTimer();
+        }
+
+        window.submitTextAnswer = function() {
+            const inputEl = document.getElementById('play-text-answer');
+            const val = inputEl.value.trim().toLowerCase();
+            if(!val) return;
+            handleAnswer(val, inputEl.parentElement, false, true);
+        }
+
+        function handleAnswer(selectedVal, element, isTimeout = false, isText = false) {
+            clearInterval(timerInterval);
+            const qObj = currentGame.quiz.questions[currentGame.currentQ];
+            
+            if (currentGame.quiz.isRPG) {
+                playSound('click');
+                const allBtns = document.querySelectorAll('.q-option');
+                allBtns.forEach(b => b.classList.add('disabled'));
+                if(element) element.classList.add('rpg-selected');
+                
+                const enBaseQ = currentGame.baseQuiz.questions[currentGame.currentQ];
+                let nextStr = enBaseQ.optsNext ? enBaseQ.optsNext[selectedVal] : '';
+                
+                setTimeout(() => {
+                    if(!nextStr || isNaN(parseInt(nextStr)) || parseInt(nextStr) <= 0) {
+                        finishGame(); 
+                    } else {
+                        currentGame.currentQ = parseInt(nextStr) - 1; 
+                        if(currentGame.currentQ >= currentGame.quiz.questions.length) finishGame();
+                        else renderQuestion();
+                    }
+                }, 800);
+                return;
+            }
+
+            let isCorrect = false;
+            if (isText) isCorrect = selectedVal === qObj.correctText.trim().toLowerCase();
+            else if (!isTimeout) isCorrect = selectedVal === qObj.correct;
+
+            if(isText) {
+                const inputs = document.querySelectorAll('#play-q-options input, #play-q-options button');
+                inputs.forEach(i => i.disabled = true);
+                if(isCorrect) element.querySelector('input').className += ' border-emerald-500 bg-emerald-50 text-emerald-700';
+                else element.querySelector('input').className += ' border-red-500 bg-red-50 text-red-700';
+            } else if (!isTimeout) {
+                const allBtns = document.querySelectorAll('.q-option');
+                allBtns.forEach(b => b.classList.add('disabled'));
+                if(isCorrect) { element.classList.add('correct'); element.innerHTML += ' <i class="fa-solid fa-check float-right mt-1"></i>'; } 
+                else {
+                    element.classList.add('wrong'); element.innerHTML += ' <i class="fa-solid fa-xmark float-right mt-1"></i>';
+                    if(qObj.type !== 'text' && allBtns[qObj.correct]) { allBtns[qObj.correct].classList.add('correct'); allBtns[qObj.correct].innerHTML += ' <i class="fa-solid fa-check float-right mt-1"></i>'; }
+                }
+            } else {
+                const allBtns = document.querySelectorAll('.q-option');
+                allBtns.forEach(b => b.classList.add('disabled'));
+                if(qObj.type !== 'text' && allBtns[qObj.correct]) { allBtns[qObj.correct].classList.add('correct'); allBtns[qObj.correct].innerHTML += ' <i class="fa-solid fa-clock float-right mt-1"></i>'; }
+            }
+
+            if(isCorrect) {
+                currentGame.score++;
+                if(currentGame.quiz.hasTimer && !isEndlessMode) currentGame.bonusXp = (currentGame.bonusXp || 0) + Math.floor(timeLeft/10); 
+                playSound('correct');
+            } else {
+                document.getElementById('play-q-card').classList.add('animate-shake');
+                setTimeout(()=>document.getElementById('play-q-card').classList.remove('animate-shake'), 400);
+                playSound('wrong');
+                if(isEndlessMode) { setTimeout(() => finishGame(), 1500); return; }
+            }
+
+            setTimeout(() => {
+                currentGame.currentQ++;
+                if(currentGame.currentQ >= currentGame.quiz.questions.length) finishGame();
+                else renderQuestion();
+            }, 1500);
+        }
+
+        async function finishGame() {
+            document.getElementById('play-game-screen').classList.add('hidden');
+            document.getElementById('play-result-screen').classList.remove('hidden');
+            
+            const timeElapsedMs = Date.now() - gameStartTime;
+            
+            document.getElementById('play-score').textContent = currentGame.score;
+            document.getElementById('play-score-max').textContent = isEndlessMode ? '∞' : currentGame.quiz.questions.length;
+
+            let totalXp = 0;
+            let totalCoins = 0;
+            const icon = document.getElementById('play-result-icon');
+            const title = document.getElementById('play-result-title');
+            
+            if(currentGame.quiz.isRPG) {
+                icon.className = 'fa-solid fa-book-open-reader text-6xl text-purple-500 mb-6 drop-shadow-md';
+                title.textContent = 'Story Concluded!';
+                document.getElementById('score-display').classList.add('hidden');
+                document.getElementById('play-result-subtitle').classList.add('hidden');
+                totalXp = 50; totalCoins = 15;
+            } else if(isEndlessMode) {
+                icon.className = 'fa-solid fa-fire text-6xl text-orange-500 mb-6 drop-shadow-md animate-bounce relative z-10';
+                title.textContent = 'Run Completed!';
+                document.getElementById('play-comments-section').classList.add('hidden');
+                document.getElementById('create-duel-block').classList.add('hidden');
+                document.getElementById('rate-trial-block').classList.add('hidden');
+                totalXp = currentGame.score * 10;
+                totalCoins = currentGame.score * 2;
+            } else if (currentGame.isDuel) {
+                icon.className = 'fa-solid fa-khanda text-6xl text-red-500 mb-6 drop-shadow-md animate-bounce relative z-10';
+                title.textContent = 'Duel Finished!';
+                document.getElementById('play-comments-section').classList.add('hidden');
+                document.getElementById('create-duel-block').classList.add('hidden');
+                document.getElementById('rewards-block').classList.add('hidden');
+                document.getElementById('rate-trial-block').classList.add('hidden');
+                
+                const duelBlock = document.getElementById('play-duel-result');
+                duelBlock.classList.remove('hidden');
+                document.getElementById('duel-p1-name').textContent = activeDuelData.challengerName;
+                document.getElementById('duel-p1-score').textContent = activeDuelData.challengerScore;
+                document.getElementById('duel-p1-time').textContent = activeDuelData.challengerTime + 's';
+                document.getElementById('duel-p2-score').textContent = currentGame.score;
+                const p2Time = Math.floor(timeElapsedMs/1000);
+                document.getElementById('duel-p2-time').textContent = p2Time + 's';
+                
+                let IWon = false;
+                if(currentGame.score > activeDuelData.challengerScore) IWon = true;
+                else if (currentGame.score === activeDuelData.challengerScore && p2Time < activeDuelData.challengerTime) IWon = true;
+                
+                if(IWon) {
+                    document.getElementById('duel-winner-text').textContent = 'You Won! 🎉';
+                    document.getElementById('duel-winner-text').className = 'mt-4 pt-4 border-t border-slate-600 font-bold text-lg text-emerald-400';
+                    totalCoins = 50; 
+                    grantBadge('duelist');
+                } else {
+                    document.getElementById('duel-winner-text').textContent = `${activeDuelData.challengerName} Won!`;
+                    document.getElementById('duel-winner-text').className = 'mt-4 pt-4 border-t border-slate-600 font-bold text-lg text-red-400';
+                }
+                activeDuelData = null; 
+            } else {
+                icon.className = 'fa-solid fa-trophy text-6xl text-yellow-400 mb-6 drop-shadow-md animate-bounce relative z-10';
+                title.textContent = 'Trial Complete!';
+                document.getElementById('play-comments-section').classList.remove('hidden');
+                document.getElementById('rate-trial-block').classList.remove('hidden');
+                
+                totalXp = (currentGame.score * 10) + (currentGame.bonusXp || 0);
+                totalCoins = Math.floor(totalXp / 5);
+                
+                progressQuest('play');
+                renderComments();
+                
+                if(currentGame.quiz.questions.length >= 10 && timeElapsedMs <= 20000) grantBadge('speedrunner');
+            }
+            
+            if(!currentGame.isDuel || (currentGame.isDuel && document.getElementById('duel-winner-text').textContent.includes('Won!'))) {
+                document.getElementById('play-xp-gained').textContent = totalXp;
+                document.getElementById('play-coins-gained').textContent = totalCoins;
+                if(totalCoins > 0) setTimeout(() => playSound('coin'), 500);
+            }
+
+            if(!isEndlessMode && currentGame && currentGame.baseQuiz) {
+                const authorProf = profiles[currentGame.baseQuiz.authorId];
+                if(authorProf && authorProf.donationLink) {
+                    document.getElementById('author-support-block').classList.remove('hidden');
+                    document.getElementById('btn-support-author-end').href = escapeHtml(authorProf.donationLink);
+                }
+            }
+
+            document.getElementById('play-music-embed').innerHTML = '';
+            document.getElementById('play-music-embed').classList.add('hidden');
+
+            if(currentUser && !currentUser.isAnonymous) {
+                let updates = { played: (profiles[currentUser.uid]?.played || 0) + 1 };
+                if(totalXp > 0) updates.xp = (profiles[currentUser.uid]?.xp || 0) + totalXp;
+                if(totalCoins > 0) updates.coins = (profiles[currentUser.uid]?.coins || 0) + totalCoins;
+                if(isEndlessMode) {
+                    if(currentGame.score > (profiles[currentUser.uid]?.endlessScore || 0)) {
+                        updates.endlessScore = currentGame.score; showToast(`New survival record: ${currentGame.score}!`, "success");
+                    }
+                    if(currentGame.score >= 50) grantBadge('survivor');
+                }
+                await updatePublicProfile(updates);
+            }
+        }
+
+        window.abortGame = function() {
+            showCustomConfirm("Abort Trial?", "Current progress will be lost.", () => showView('feed'));
+        }
+
+        function renderComments() {
+            const container = document.getElementById('comments-container');
+            container.innerHTML = '';
+            
+            const comments = allComments.filter(c => c.quizId === currentGame.quiz.id).sort((a,b) => b.timestamp - a.timestamp);
+            if(comments.length === 0) {
+                container.innerHTML = `<div class="text-center py-6 text-slate-400 text-sm font-bold border border-dashed border-slate-200 rounded-xl">No comments yet. Be the first!</div>`;
+                return;
+            }
+
+            comments.forEach(c => {
+                const authorStyle = profiles[c.userId]?.avatarStyle || 'bottts';
+                const el = document.createElement('div');
+                el.className = 'bg-slate-50 border border-slate-200 rounded-xl p-4 flex gap-3 shadow-sm';
+                el.innerHTML = `
+                    <img src="${getAvatarUrl(c.userName, authorStyle)}" class="w-10 h-10 rounded-full border border-slate-300 shrink-0 cursor-pointer hover:border-primary-500 transition-colors" onclick="openPublicProfile('${c.userId}')">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                            <span class="font-bold text-slate-800 text-sm cursor-pointer hover:text-primary-600 transition-colors" onclick="openPublicProfile('${c.userId}')">${escapeHtml(c.userName)}</span>
+                            <span class="text-[10px] sm:text-xs text-slate-400">${new Date(c.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        <div class="text-slate-600 text-sm font-medium leading-relaxed markdown-body">${marked.parse(c.text)}</div>
+                    </div>`;
+                container.appendChild(el);
+            });
+        }
+
+        window.submitComment = async function() {
+            playSound('ui');
+            if(!currentUser || currentUser.isAnonymous) return showToast("Only registered heroes can comment", "error");
+            const input = document.getElementById('comment-input');
+            const text = input.value.trim();
+            if(!text) return;
+
+            const commentData = { quizId: currentGame.quiz.id, userId: currentUser.uid, userName: myName, text: text, timestamp: Date.now() };
+
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'comments'), commentData);
+                input.value = ''; progressQuest('comment');
+            } catch(e) { showToast("Error", "error"); }
+        }
+
+        function renderProfileData() {
+            if(!currentUser) return;
+            const p = profiles[currentUser.uid] || {};
+            const xpData = getLevelData(p.xp);
+            
+            applyProfileTheme('my-profile-card', p.profileTheme || 'default');
+            
+            document.getElementById('profile-name').textContent = p.name || 'Guest';
+            
+            const avatarUrl = getAvatarUrl(p.name, p.avatarStyle);
+            document.getElementById('profile-avatar').innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
+            document.getElementById('profile-level-badge').textContent = xpData.level;
+            
+            document.getElementById('profile-xp-current').textContent = p.xp || 0;
+            document.getElementById('profile-xp-next').textContent = xpData.nextLvlXp;
+            setTimeout(() => { document.getElementById('profile-xp-bar').style.width = `${xpData.progress}%`; }, 100);
+
+            const myQ = quizzes.filter(q => q.authorId === currentUser.uid);
+            document.getElementById('profile-stat-created').textContent = myQ.length;
+            document.getElementById('profile-stat-played').textContent = p.played || 0;
+            document.getElementById('profile-stat-survival').textContent = p.endlessScore || 0;
+            
+            const badgesContainer = document.getElementById('profile-badges-container');
+            badgesContainer.innerHTML = '';
+            const userBadges = p.badges || [];
+            if(userBadges.length === 0) badgesContainer.innerHTML = `<span class="text-sm text-slate-400 font-medium">No achievements yet. Keep playing!</span>`;
+            else {
+                userBadges.forEach(bId => {
+                    const bDef = BADGES.find(x => x.id === bId);
+                    if(bDef) badgesContainer.innerHTML += `<div class="flex flex-col items-center gap-1 w-20 group" title="${bDef.desc}"><div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-2xl sm:text-3xl border-2 ${bDef.color} shadow-sm badge-icon transition-transform group-hover:scale-110">${bDef.icon}</div><span class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase text-center leading-tight">${bDef.name}</span></div>`;
+                });
+            }
+
+            document.getElementById('btn-edit-profile').classList.remove('hidden');
+        }
+
+        function renderProfileQuizzes() {
+            const container = document.getElementById('profile-quizzes-container');
+            container.innerHTML = '';
+            if(!currentUser) return;
+            
+            const myQ = quizzes.filter(q => q.authorId === currentUser.uid).sort((a,b) => b.timestamp - a.timestamp);
+            if(myQ.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 border border-dashed border-slate-300 rounded-xl text-slate-500 font-bold bg-white shadow-sm">You haven't created any trials yet.</div>`;
+                return;
+            }
+
+            myQ.forEach(q => {
+                const el = document.createElement('div');
+                el.className = 'floating-card p-4 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-4 border-l-4 border-l-primary-500 cursor-pointer hover:bg-slate-50 transition-colors active:scale-95 sm:active:scale-100';
+                el.onclick = () => { playSound('ui'); initPlayView(q.id); };
+                el.innerHTML = `
+                    <div class="flex-1 min-w-0 w-full pr-4">
+                        <div class="font-bold text-slate-800 text-lg truncate">${escapeHtml(q.title)}</div>
+                        <div class="text-[10px] sm:text-xs text-slate-500 mt-1"><i class="fa-solid fa-play"></i> ${q.plays||0} • <i class="fa-solid fa-heart text-red-400"></i> ${q.likes||0} • ${q.questions.length} ${q.isRPG?'Scenes':'Qs'}</div>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                        <button onclick="event.stopPropagation(); editQuiz('${q.id}')" class="flex-1 sm:flex-none w-auto sm:w-10 h-10 rounded-lg bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors flex items-center justify-center shadow-sm active:scale-95" title="Edit">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteQuiz('${q.id}')" class="flex-1 sm:flex-none w-auto sm:w-10 h-10 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center shadow-sm active:scale-95" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        window.deleteQuiz = async function(id) {
+            showCustomConfirm("Delete Trial?", "This trial will be permanently removed for all players.", async () => {
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'quizzes', id));
+                    showToast("Deleted", "success");
+                } catch(e) { showToast("Error", "error"); }
+            });
+        }
+
+        window.openProfileSettings = function() {
+            playSound('ui');
+            document.getElementById('settings-modal').classList.remove('hidden');
+            const p = profiles[currentUser.uid] || {};
+            document.getElementById('set-name').value = p.name || myName;
+            document.getElementById('set-donatelink').value = p.donationLink || '';
+            if(!settingsAvatarSelect) initGlobalSelects();
+            settingsAvatarSelect.setValue(p.avatarStyle || 'bottts');
+            
+            document.getElementById('shop-coins').innerHTML = `<i class="fa-solid fa-coins"></i> ${p.coins || 0}`;
+            renderShop(p);
+        }
+        
+        function renderShop(p) {
+            const container = document.getElementById('theme-shop-container');
+            container.innerHTML = '';
+            const unlocked = p.unlockedThemes || ['default'];
+            const current = p.profileTheme || 'default';
+            
+            THEMES.forEach(t => {
+                const isUnlocked = unlocked.includes(t.id);
+                const isActive = current === t.id;
+                
+                let btnHtml = '';
+                if(isActive) btnHtml = `<div class="text-xs font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded"><i class="fa-solid fa-check"></i> Active</div>`;
+                else if(isUnlocked) btnHtml = `<button onclick="applyTheme('${t.id}')" class="text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded transition-colors active:scale-95">Equip</button>`;
+                else btnHtml = `<button onclick="buyTheme('${t.id}', ${t.cost})" class="text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded flex items-center gap-1 transition-colors active:scale-95"><i class="fa-solid fa-coins"></i> ${t.cost}</button>`;
+                
+                container.innerHTML += `
+                    <div class="border border-slate-200 rounded-lg p-2 flex flex-col justify-between ${t.class}">
+                        <div class="text-xs font-bold mb-2 text-center drop-shadow-sm">${t.name}</div>
+                        <div class="flex justify-center">${btnHtml}</div>
+                    </div>
+                `;
+            });
+        }
+        
+        window.buyTheme = async function(themeId, cost) {
+            playSound('ui');
+            const p = profiles[currentUser.uid] || {};
+            const coins = p.coins || 0;
+            if(coins < cost) return showToast("Not enough Lore Coins!", "error");
+            
+            let unlocked = p.unlockedThemes || ['default'];
+            unlocked.push(themeId);
+            
+            playSound('coin');
+            await updatePublicProfile({ coins: coins - cost, unlockedThemes: unlocked, profileTheme: themeId });
+            showToast("Theme unlocked and equipped!", "success");
+            renderShop(profiles[currentUser.uid]);
+            renderProfileData();
+        }
+        
+        window.applyTheme = async function(themeId) {
+            playSound('ui');
+            await updatePublicProfile({ profileTheme: themeId });
+            renderShop(profiles[currentUser.uid]);
+            renderProfileData();
+        }
+
+        window.saveProfileSettings = async function() {
+            playSound('ui');
+            const newName = document.getElementById('set-name').value.trim();
+            const newLink = document.getElementById('set-donatelink').value.trim();
+            const newAvatar = settingsAvatarSelect.getValue();
+            if(!newName) return showToast("Enter a name", "error");
+            
+            try {
+                await updatePublicProfile({ name: newName, avatarStyle: newAvatar, donationLink: newLink });
+                myName = newName; localStorage.setItem('loreTrials_username', myName);
+                document.getElementById('settings-modal').classList.add('hidden');
+                showToast("Saved", "success");
+            } catch(e) { showToast("Error", "error"); }
+        }
+
+    </script>
+</body>
+</html>
